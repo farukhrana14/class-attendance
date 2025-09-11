@@ -201,32 +201,33 @@ export default function RosterManagement() {
         const line = lines[i].trim();
         if (!line) continue;
 
-        // Expected format: Name, Email, StudentID (optional), Section (optional)
-        // or CSV format: Name,Email,StudentID,Section
+        // Expected format: StudentID, Name, Email, Section (optional)
+        // or CSV format: StudentID,Name,Email,Section
         const parts = line.split(',').map(part => part.trim());
         
         // Skip header rows - check if first column looks like a header
         const firstCol = parts[0].toLowerCase();
-        if (i === 0 && (firstCol.includes('name') || firstCol.includes('student') || firstCol.includes('email'))) {
+        if (i === 0 && (firstCol.includes('name') || firstCol.includes('student') || firstCol.includes('email') || firstCol.includes('id'))) {
           console.log(`Skipping header row: ${line}`);
           continue;
         }
         
-        if (parts.length < 2) {
-          errors.push(`Line ${i + 1}: Invalid format. Need at least Name and Email`);
+        if (parts.length < 3) {
+          errors.push(`Line ${i + 1}: Invalid format. Need at least StudentID, Name, and Email`);
           continue;
         }
 
-        const [name, email, studentId = "", section = ""] = parts;
+        const [studentId, name, email, section = ""] = parts;
         
         // Additional header detection - skip if values look like column headers
-        if (name.toLowerCase().includes('name') || email.toLowerCase().includes('email')) {
+        if (studentId.toLowerCase().includes('student') || studentId.toLowerCase().includes('id') || 
+            name.toLowerCase().includes('name') || email.toLowerCase().includes('email')) {
           console.log(`Skipping detected header row: ${line}`);
           continue;
         }
         
-        if (!name || !email) {
-          errors.push(`Line ${i + 1}: Name and Email are required`);
+        if (!studentId || !name || !email) {
+          errors.push(`Line ${i + 1}: StudentID, Name, and Email are all required`);
           continue;
         }
 
@@ -425,7 +426,7 @@ export default function RosterManagement() {
                     Upload Excel or CSV File
                   </label>
                   <p className="text-sm text-gray-500 mb-3">
-                    Upload a file with format: <code>Name, Email, Student ID, Section</code><br/>
+                    Upload a file with format: <code>Student ID, Name, Email, Section</code><br/>
                     Supports: Excel (.xlsx, .xls) and CSV (.csv) files
                   </p>
                   <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
@@ -461,7 +462,7 @@ export default function RosterManagement() {
                     Bulk Import Students (CSV Format)
                   </label>
                   <p className="text-sm text-gray-500 mb-3">
-                    Enter one student per line in format: <code>Name, Email, Student ID, Section</code><br/>
+                    Enter one student per line in format: <code>Student ID, Name, Email, Section</code><br/>
                     Example: <code>John Doe, john@email.com, ST001, A</code>
                   </p>
                   <textarea

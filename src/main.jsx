@@ -7,6 +7,8 @@ import LoginPage from "./pages/LoginPage.jsx";
 import AdminDashboard from "./pages/AdminDashboard.jsx";
 import TeacherDashboard from "./pages/TeacherDashboard.jsx";
 import AdminTeacherManagement from "./components/AdminTeacherManagement.jsx";
+import AdminStudentManagement from "./components/AdminStudentManagement.jsx";
+import AdminCourseManagement from "./components/AdminCourseManagement.jsx";
 import CourseCreation from "./components/CourseCreation.jsx";
 import CourseDetails from "./components/CourseDetails.jsx";
 import RollCall from "./components/RollCall.jsx";
@@ -20,6 +22,7 @@ import NotAuthorized from "./pages/NotAuthorized.jsx";
 import StudentHome from "./pages/StudentHome.jsx";
 import StudentHomePage from "./pages/StudentHomePage.jsx";
 import Checkin from "./pages/Checkin.jsx";
+import DatabaseSeeder from "./components/DatabaseSeeder.jsx";
 
 
 ReactDOM.createRoot(document.getElementById("root")).render(
@@ -43,6 +46,22 @@ ReactDOM.createRoot(document.getElementById("root")).render(
             element={
               <AdminRoute>
                 <AdminTeacherManagement />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/students"
+            element={
+              <AdminRoute>
+                <AdminStudentManagement />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/courses"
+            element={
+              <AdminRoute>
+                <AdminCourseManagement />
               </AdminRoute>
             }
           />
@@ -136,6 +155,8 @@ ReactDOM.createRoot(document.getElementById("root")).render(
             } 
           />
           <Route path="/checkin" element={<Checkin />} />
+          {/* Development route - remove in production */}
+          <Route path="/seed" element={<DatabaseSeeder />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

@@ -145,7 +145,7 @@ export default function CourseCreation() {
                         required
                         value={formData.courseCode}
                         onChange={handleInputChange}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 py-3 px-4"
                         placeholder="e.g., CSC101"
                       />
                     </div>
@@ -161,7 +161,7 @@ export default function CourseCreation() {
                         required
                         value={formData.title}
                         onChange={handleInputChange}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 py-3 px-4"
                         placeholder="e.g., Introduction to Computer Science"
                       />
                     </div>
@@ -176,7 +176,7 @@ export default function CourseCreation() {
                         required
                         value={formData.semester}
                         onChange={handleInputChange}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 py-3 px-4"
                       >
                         <option value="">Select a semester</option>
                         {semesters.map(sem => (
@@ -198,7 +198,7 @@ export default function CourseCreation() {
                         onChange={handleInputChange}
                         min="2024"
                         max="2030"
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 py-3 px-4"
                       />
                     </div>
 
@@ -213,7 +213,7 @@ export default function CourseCreation() {
                         required
                         value={formData.universityName}
                         onChange={handleInputChange}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 py-3 px-4"
                         placeholder="e.g., State University"
                       />
                     </div>
