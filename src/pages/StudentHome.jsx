@@ -153,9 +153,9 @@ export default function StudentHome() {
         createdAt: serverTimestamp()
       });
       setRegistrationSuccess(true);
-      // Redirect to pending approval page after 2 seconds
+      // Redirect to check-in page after successful registration
       setTimeout(() => {
-        window.location.reload();
+        navigate("/checkin");
       }, 2000);
     } catch (error) {
       console.error("Registration error:", error);

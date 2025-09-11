@@ -7,11 +7,18 @@ import { useAuth } from '../context/AuthContext';
 export default function CourseDetails() {
   const { courseId } = useParams();
   const navigate = useNavigate();
-  const { userData } = useAuth();
+  const { userData, logout } = useAuth();
   const [course, setCourse] = useState(null);
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  const handleSignOut = () => {
+    logout();
+    setTimeout(() => {
+      navigate("/");
+    }, 100);
+  };
 
   useEffect(() => {
     const fetchCourseAndStudents = async () => {
@@ -62,6 +69,29 @@ export default function CourseDetails() {
 
   return (
     <div className="min-h-screen bg-gray-100 py-8 px-4 sm:px-6 lg:px-8">
+      {/* Top Navigation */}
+      <div className="max-w-7xl mx-auto mb-6">
+        <div className="bg-white shadow rounded-lg px-6 py-4">
+          <div className="flex justify-between items-center">
+            <h2 className="text-lg font-semibold text-gray-800">Course Management</h2>
+            <div className="flex space-x-3">
+              <button
+                onClick={() => navigate('/teacher')}
+                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                Teacher Dashboard
+              </button>
+              <button
+                onClick={handleSignOut}
+                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+              >
+                Sign Out
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="max-w-7xl mx-auto">
         {/* Course Header */}
         <div className="bg-white shadow rounded-lg mb-6">
@@ -83,10 +113,10 @@ export default function CourseDetails() {
                   Edit Course
                 </button>
                 <button
-                  onClick={() => navigate('/teacher/attendance/take/' + courseId)}
+                  onClick={() => navigate(`/teacher/courses/${courseId}/rollcall`)}
                   className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 >
-                  Take Attendance
+                  Take Roll Call
                 </button>
               </div>
             </div>

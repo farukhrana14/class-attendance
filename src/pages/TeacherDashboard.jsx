@@ -1,6 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { collection, query, where, getDocs } from "firebase/firestore";
+import { db } from "../firebase";
 
 const sidebarItems = [
   { name: "Courses", path: "/teacher/courses" },
@@ -9,41 +11,40 @@ const sidebarItems = [
   { name: "Settings", path: "/teacher/settings" }
 ];
 
-// Sample data - replace with actual API calls later
-const sampleCourses = [
-  { 
-    id: 1, 
-    code: "CS101", 
-    title: "Introduction to Computer Science", 
-    semester: "Fall 2024", 
-    attendance: 92,
-    totalStudents: 45,
-    nextClass: "Mon, 10:00 AM"
-  },
-  { 
-    id: 2, 
-    code: "MATH202", 
-    title: "Advanced Mathematics", 
-    semester: "Spring 2024", 
-    attendance: 87,
-    totalStudents: 38,
-    nextClass: "Tue, 2:00 PM"
-  },
-  { 
-    id: 3, 
-    code: "PHYS150", 
-    title: "Physics Basics", 
-    semester: "Fall 2024", 
-    attendance: 95,
-    totalStudents: 42,
-    nextClass: "Wed, 11:30 AM"
-  },
-];
-
 export default function TeacherDashboard() {
   const navigate = useNavigate();
   const { userData, logout } = useAuth();
   const [activeMenu, setActiveMenu] = useState("Courses");
+  const [courses, setCourses] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch courses for this teacher
+  useEffect(() => {
+    const fetchCourses = async () => {
+      if (!userData?.email) return;
+      
+      try {
+        setLoading(true);
+        // Query courses where teacher email is in teacherEmails array or matches teacherEmail field
+        const coursesRef = collection(db, "courses");
+        const q = query(coursesRef, where("teacherEmail", "==", userData.email));
+        const querySnapshot = await getDocs(q);
+        
+        const coursesData = [];
+        querySnapshot.forEach((doc) => {
+          coursesData.push({ id: doc.id, ...doc.data() });
+        });
+        
+        setCourses(coursesData);
+      } catch (error) {
+        console.error("Error fetching courses:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCourses();
+  }, [userData]);
 
   const handleSignOut = () => {
     logout();
@@ -59,12 +60,6 @@ export default function TeacherDashboard() {
 
   const handleCourseClick = (courseId) => {
     navigate(`/teacher/courses/${courseId}`);
-  };
-
-  const getAttendanceColor = (percentage) => {
-    if (percentage >= 90) return "text-green-600";
-    if (percentage >= 75) return "text-yellow-600";
-    return "text-red-600";
   };
 
   return (
@@ -114,39 +109,54 @@ export default function TeacherDashboard() {
           </button>
         </div>
 
-        <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-          {sampleCourses.map((course) => (
-            <div
-              key={course.id}
-              onClick={() => handleCourseClick(course.id)}
-              className="bg-white rounded-lg shadow p-6 flex flex-col justify-between hover:shadow-lg transition-shadow duration-200 cursor-pointer"
+        {loading ? (
+          <div className="flex justify-center items-center h-64">
+            <p className="text-gray-600 text-lg">Loading your courses...</p>
+          </div>
+        ) : courses.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-gray-500 text-lg mb-4">No courses found</p>
+            <p className="text-gray-400 mb-6">Create your first course to get started</p>
+            <button
+              onClick={() => navigate("/teacher/courses/new")}
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
-              <div>
-                <div className="flex justify-between items-start mb-2">
-                  <h3 className="text-lg font-bold">{course.code}</h3>
-                  <span className="text-sm text-gray-500">{course.semester}</span>
+              Create Your First Course
+            </button>
+          </div>
+        ) : (
+          <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+            {courses.map((course) => (
+              <div
+                key={course.id}
+                className="bg-white rounded-lg shadow p-6 flex flex-col justify-between hover:shadow-lg transition-shadow duration-200"
+              >
+                <div onClick={() => handleCourseClick(course.id)} className="cursor-pointer">
+                  <div className="flex justify-between items-start mb-2">
+                    <h3 className="text-lg font-bold">{course.courseCode}</h3>
+                    <span className="text-sm text-gray-500">{course.semester}</span>
+                  </div>
+                  <p className="text-gray-700 mb-3">{course.courseName}</p>
+                  <div className="text-sm text-gray-600">
+                    <p>Section: {course.section}</p>
+                    <p>University: {course.university}</p>
+                  </div>
                 </div>
-                <p className="text-gray-700 mb-3">{course.title}</p>
-                <div className="text-sm text-gray-600">
-                  <p>Students: {course.totalStudents}</p>
-                  <p>Next Class: {course.nextClass}</p>
-                </div>
-              </div>
-              <div className="mt-4 pt-4 border-t border-gray-100">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-semibold text-gray-600">
-                    Attendance Rate
-                  </span>
-                  <span
-                    className={`font-bold ${getAttendanceColor(course.attendance)}`}
+                <div className="mt-4 pt-4 border-t border-gray-100">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/teacher/courses/${course.id}/rollcall`);
+                    }}
+                    className="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium"
                   >
-                    {course.attendance}%
-                  </span>
+                    📋 Take Roll Call
+                  </button>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </main>
     </div>
   );

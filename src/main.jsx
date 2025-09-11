@@ -9,6 +9,8 @@ import TeacherDashboard from "./pages/TeacherDashboard.jsx";
 import AdminTeacherManagement from "./components/AdminTeacherManagement.jsx";
 import CourseCreation from "./components/CourseCreation.jsx";
 import CourseDetails from "./components/CourseDetails.jsx";
+import RollCall from "./components/RollCall.jsx";
+import RosterManagement from "./components/RosterManagement.jsx";
 import AdminRoute from "./routes/AdminRoute.jsx";
 import TeacherRoute from "./routes/TeacherRoute.jsx";
 import StudentAdminRoute from "./routes/StudentAdminRoute.jsx";
@@ -105,6 +107,22 @@ ReactDOM.createRoot(document.getElementById("root")).render(
             element={
               <TeacherRoute>
                 <CourseDetails />
+              </TeacherRoute>
+            }
+          />
+          <Route
+            path="/teacher/courses/:courseId/rollcall"
+            element={
+              <TeacherRoute>
+                <RollCall />
+              </TeacherRoute>
+            }
+          />
+          <Route
+            path="/teacher/courses/roster/:courseId"
+            element={
+              <TeacherRoute>
+                <RosterManagement />
               </TeacherRoute>
             }
           />
