@@ -1,10 +1,13 @@
 import { useAuth } from "../context/AuthContext.jsx";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 
 export default function Home() {
   const { user, userData, login, logout, checking } = useAuth();
 
   if (checking) return <p>Loading...</p>;
+
+  // Don't auto-redirect users to registration from home page
+  // Let them navigate manually if they want to register
 
   const pages = [
     { name: "Login Page", path: "/login", description: "Authentication page" },

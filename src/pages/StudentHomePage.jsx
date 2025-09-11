@@ -1,47 +1,44 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { FaUserCircle } from "react-icons/fa";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
-
-// Dummy data for demonstration
-const studentInfo = {
-  name: "John Doe",
-  studentId: "2025001",
-  email: "john.doe@example.com",
-  phone: "+880123456789",
-  photoURL: "", // leave empty to use icon
-};
-
-const university = "State University";
-const semester = "Fall 2025";
-
-const courses = [
-  {
-    code: "CS101",
-    name: "Introduction to Computer Science",
-    section: "A",
-    instructor: "Dr. Alice Smith",
-    schedule: "Mon & Wed 10:00-11:30 AM",
-  },
-  {
-    code: "MATH202",
-    name: "Advanced Mathematics",
-    section: "B",
-    instructor: "Dr. Bob Lee",
-    schedule: "Tue & Thu 2:00-3:30 PM",
-  },
-  {
-    code: "PHY150",
-    name: "Physics Basics",
-    section: "C",
-    instructor: "Dr. Carol White",
-    schedule: "Fri 9:00-11:00 AM",
-  },
-];
+import { collection, query, where, getDocs } from "firebase/firestore";
+import { db } from "../firebase";
 
 export default function StudentHomePage() {
-  const { logout } = useAuth();
+  const { user, userData, logout } = useAuth();
+  const [courses, setCourses] = useState([]);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+
+  // Fetch courses for the student
+  useEffect(() => {
+    const fetchCourses = async () => {
+      if (!userData?.studentId) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        // Get courses where student is enrolled
+        const coursesRef = collection(db, "courses");
+        const q = query(coursesRef, where("students", "array-contains", userData.studentId));
+        const querySnapshot = await getDocs(q);
+        
+        const coursesData = [];
+        querySnapshot.forEach((doc) => {
+          coursesData.push({ id: doc.id, ...doc.data() });
+        });
+        
+        setCourses(coursesData);
+      } catch (error) {
+        console.error("Error fetching courses:", error);
+      }
+      setLoading(false);
+    };
+
+    fetchCourses();
+  }, [userData]);
 
   const handleSignOut = () => {
     logout();
@@ -50,6 +47,26 @@ export default function StudentHomePage() {
       navigate("/");
     }, 100);
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <p className="text-lg text-gray-600">Loading your courses...</p>
+      </div>
+    );
+  }
+
+  // Get user information from Firebase Auth and Firestore
+  const studentInfo = {
+    name: userData?.name || user?.displayName || "Student",
+    studentId: userData?.studentId || "Not assigned",
+    email: user?.email || "No email",
+    phone: userData?.phone || "Not provided",
+    photoURL: user?.photoURL || "",
+  };
+
+  const university = userData?.university || "Your University";
+  const semester = "Fall 2025"; // Could be made dynamic later
 
   return (
     <div className="min-h-screen bg-gray-50 p-8 flex flex-col md:flex-row gap-8 font-sans">
@@ -70,15 +87,24 @@ export default function StudentHomePage() {
           <p className="text-gray-600 text-lg">{semester}</p>
         </div>
         <div className="space-y-6">
-          {courses.map((course, idx) => (
-            <div key={idx} className="bg-white rounded-lg shadow p-6">
-              <div className="text-xl font-semibold text-blue-700 mb-1">{course.code}</div>
-              <div className="text-lg text-gray-800 mb-1">{course.name}</div>
-              <div className="text-gray-600 mb-1">Section: {course.section}</div>
-              <div className="text-gray-600 mb-1">Instructor: {course.instructor}</div>
-              <div className="text-gray-600">Schedule: {course.schedule}</div>
+          {courses.length > 0 ? (
+            courses.map((course, idx) => (
+              <div key={idx} className="bg-white rounded-lg shadow p-6">
+                <div className="text-xl font-semibold text-blue-700 mb-1">{course.courseCode}</div>
+                <div className="text-lg text-gray-800 mb-1">{course.courseName}</div>
+                <div className="text-gray-600 mb-1">Section: {course.section}</div>
+                <div className="text-gray-600 mb-1">Instructor: {course.instructor}</div>
+                <div className="text-gray-600">Schedule: {course.schedule || "TBA"}</div>
+              </div>
+            ))
+          ) : (
+            <div className="bg-white rounded-lg shadow p-6 text-center">
+              <p className="text-gray-500">No courses enrolled yet.</p>
+              <p className="text-sm text-gray-400 mt-2">
+                Contact your administrator to be added to courses.
+              </p>
             </div>
-          ))}
+          )}
         </div>
       </div>
       {/* Right: Student Info */}

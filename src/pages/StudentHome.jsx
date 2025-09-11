@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 import { db } from "../firebase";
 import { collection, getDocs, addDoc, doc, setDoc, query, where } from "firebase/firestore";
+import { serverTimestamp } from "firebase/firestore";
 
 const sampleAttendance = [
   { date: "2024-06-01", time: "08:00 AM", status: "Present" },
@@ -11,10 +13,14 @@ const sampleAttendance = [
 
 export default function StudentHome() {
   const { user, userData, login, logout } = useAuth();
+  const navigate = useNavigate();
   const [isSignedIn, setIsSignedIn] = useState(false);
   const [gpsPermission, setGpsPermission] = useState(null);
   const [showRegistration, setShowRegistration] = useState(false);
   const [studentName, setStudentName] = useState("");
+  const [courseCode, setCourseCode] = useState("");
+  const [university, setUniversity] = useState("");
+  const [section, setSection] = useState("");
   const [checkingRoster, setCheckingRoster] = useState(false);
   const [rosterMatch, setRosterMatch] = useState(false);
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
@@ -112,12 +118,12 @@ export default function StudentHome() {
             }
           }
           setRosterMatch(found);
-          setShowRegistration(found);
           
-          // If not found in any roster and done checking
+          // If not found in any roster, show registration form instead of logging out
           if (!found) {
-            setNotRegistered(true);
-            logout();
+            setShowRegistration(true); // Show registration form for unrostered students
+          } else {
+            setShowRegistration(true); // Also show for rostered students who need to complete profile
           }
         } catch (error) {
           console.error("Error checking roster:", error);
@@ -130,27 +136,32 @@ export default function StudentHome() {
   }, [user, userData, logout]);
 
   
-  // Registration form submit
+  // Registration form submit - Save to pendingStudents collection per MVP
   const handleRegister = async (e) => {
-  e.preventDefault();
-  if (!user) return;
-  
-  try {
-    await setDoc(doc(db, "users", user.email), {
-      name: studentName || user.displayName || user.email,
-      email: user.email,
-      role: "student"
-    });
-    setRegistrationSuccess(true);
-    // Redirect to student dashboard after 2 seconds
-    setTimeout(() => {
-      window.location.reload();
-    }, 2000);
-  } catch (error) {
-    console.error("Registration error:", error);
-    alert("Registration failed. Please try again.");
-  }
-};
+    e.preventDefault();
+    if (!user) return;
+    
+    try {
+      // Save to pendingStudents collection as per MVP schema
+      await addDoc(collection(db, "pendingStudents"), {
+        name: studentName || user.displayName || user.email,
+        email: user.email,
+        courseCode: courseCode,
+        university: university,
+        section: section,
+        status: "pending", // default status
+        createdAt: serverTimestamp()
+      });
+      setRegistrationSuccess(true);
+      // Redirect to pending approval page after 2 seconds
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+    } catch (error) {
+      console.error("Registration error:", error);
+      alert("Registration failed. Please try again.");
+    }
+  };
 
   const requestGpsPermission = () => {
     if ("geolocation" in navigator) {
@@ -237,18 +248,34 @@ export default function StudentHome() {
   if (showRegistration && !userData) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-6 font-sans">
+        {/* Header with Sign Out button */}
+        <div className="absolute top-4 right-4">
+          <button
+            onClick={() => {
+              logout();
+              setTimeout(() => {
+                navigate("/");
+              }, 100);
+            }}
+            className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+          >
+            Sign Out
+          </button>
+        </div>
+        
         <h1 className="text-2xl font-semibold mb-4 text-gray-800">Student Registration</h1>
+        <p className="text-gray-600 mb-4 text-center">Please provide your course information to complete registration.</p>
         {registrationSuccess ? (
-          <div className="bg-green-100 text-green-800 p-4 rounded-lg text-center">
-            Registration successful! Redirecting to dashboard...
+          <div className="bg-green-100 text-green-800 p-4 rounded-lg text-center mb-4">
+            Registration request submitted! Your registration is pending approval by your teacher or admin.
           </div>
         ) : (
-          <form onSubmit={handleRegister} className="bg-white rounded shadow p-6 w-full max-w-sm flex flex-col gap-4">
+          <form onSubmit={handleRegister} className="bg-white rounded shadow p-6 w-full max-w-md flex flex-col gap-4 mb-4">
             <label className="text-sm font-medium text-gray-700">
-              Name
+              Full Name
               <input
                 type="text"
-                className="mt-1 block w-full rounded border-gray-300"
+                className="mt-1 block w-full rounded border-gray-300 px-3 py-2"
                 value={studentName}
                 onChange={e => setStudentName(e.target.value)}
                 placeholder={user.displayName || user.email}
@@ -259,28 +286,62 @@ export default function StudentHome() {
               Email
               <input
                 type="email"
-                className="mt-1 block w-full rounded border-gray-300 bg-gray-100"
+                className="mt-1 block w-full rounded border-gray-300 bg-gray-100 px-3 py-2"
                 value={user.email}
                 disabled
               />
             </label>
             <label className="text-sm font-medium text-gray-700">
-              Role
+              Course Code
               <input
                 type="text"
-                className="mt-1 block w-full rounded border-gray-300 bg-gray-100"
-                value="student"
-                disabled
+                className="mt-1 block w-full rounded border-gray-300 px-3 py-2"
+                value={courseCode}
+                onChange={e => setCourseCode(e.target.value)}
+                placeholder="e.g., CS101"
+                required
+              />
+            </label>
+            <label className="text-sm font-medium text-gray-700">
+              University
+              <input
+                type="text"
+                className="mt-1 block w-full rounded border-gray-300 px-3 py-2"
+                value={university}
+                onChange={e => setUniversity(e.target.value)}
+                placeholder="e.g., State University"
+                required
+              />
+            </label>
+            <label className="text-sm font-medium text-gray-700">
+              Section
+              <input
+                type="text"
+                className="mt-1 block w-full rounded border-gray-300 px-3 py-2"
+                value={section}
+                onChange={e => setSection(e.target.value)}
+                placeholder="e.g., A, B, C"
+                required
               />
             </label>
             <button
               type="submit"
-              className="bg-green-600 text-white px-6 py-3 rounded-lg text-lg font-bold shadow hover:bg-green-700 transition-colors mt-2"
+              className="bg-blue-600 text-white px-6 py-3 rounded-lg text-lg font-bold shadow hover:bg-blue-700 transition-colors mt-2"
             >
-              Register
+              Submit Registration Request
             </button>
           </form>
         )}
+        
+        {/* Go to Home button */}
+        <button 
+          onClick={() => {
+            navigate("/");
+          }}
+          className="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition-colors text-center inline-block"
+        >
+          Go to Home
+        </button>
       </div>
     );
   }
@@ -289,6 +350,21 @@ export default function StudentHome() {
   if (userData && userData.role === 'student') {
     return (
       <div className="min-h-screen bg-gray-50 p-6 font-sans">
+        {/* Header with Sign Out button */}
+        <div className="absolute top-4 right-4">
+          <button
+            onClick={() => {
+              logout();
+              setTimeout(() => {
+                navigate("/");
+              }, 100);
+            }}
+            className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+          >
+            Sign Out
+          </button>
+        </div>
+        
         <div className="max-w-2xl mx-auto">
           {/* Welcome Message */}
           <div className="bg-white rounded-lg shadow-md p-6 mb-6">
@@ -335,7 +411,19 @@ export default function StudentHome() {
               <div className="bg-green-100 text-green-800 p-4 rounded-lg">
                 <p className="font-semibold mb-1">✓ Present</p>
                 <p className="text-sm">
-                  Signed in at {new Date(todayAttendance.timestamp).toLocaleTimeString()}
+                  Signed in at {(() => {
+                    const timestamp = todayAttendance.timestamp;
+                    if (!timestamp) return "Unknown time";
+                    
+                    // Handle Firestore Timestamp objects
+                    if (timestamp.toDate && typeof timestamp.toDate === 'function') {
+                      return timestamp.toDate().toLocaleTimeString();
+                    }
+                    
+                    // Handle ISO strings or regular dates
+                    const date = new Date(timestamp);
+                    return isNaN(date.getTime()) ? "Unknown time" : date.toLocaleTimeString();
+                  })()}
                 </p>
                 {todayAttendance.location && (
                   <p className="text-sm mt-1">

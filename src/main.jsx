@@ -108,7 +108,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
               </TeacherRoute>
             }
           />
-          <Route path="/student" element={<Navigate to="/student/home" replace />} />
+          <Route path="/student" element={<StudentHome />} />
           <Route 
             path="/student/home" 
             element={

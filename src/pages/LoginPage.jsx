@@ -21,6 +21,11 @@ export default function LoginPage() {
     }
   }
 
+  // If user is signed in but no userData, redirect to student registration
+  if (user && !userData && !checking) {
+    return <Navigate to="/student" replace />;
+  }
+
   const handleLogin = async () => {
     try {
       setError(null);
