@@ -42,8 +42,15 @@ const sampleCourses = [
 
 export default function TeacherDashboard() {
   const navigate = useNavigate();
-  const { userData } = useAuth();
+  const { userData, logout } = useAuth();
   const [activeMenu, setActiveMenu] = useState("Courses");
+
+  const handleSignOut = () => {
+    logout();
+    setTimeout(() => {
+      navigate("/");
+    }, 100);
+  };
 
   const handleMenuClick = (item) => {
     setActiveMenu(item.name);
@@ -71,6 +78,12 @@ export default function TeacherDashboard() {
           <div className="mt-2 text-sm text-gray-600">
             Welcome, {userData?.name}
           </div>
+          <button
+            onClick={handleSignOut}
+            className="mt-4 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors text-sm"
+          >
+            Sign Out
+          </button>
         </div>
         <nav className="flex flex-col flex-grow">
           {sidebarItems.map((item) => (

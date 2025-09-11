@@ -8,7 +8,7 @@ import Sidebar from './Sidebar';
 
 export default function CourseCreation() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   
   const [formData, setFormData] = useState({
     courseCode: '',
@@ -19,6 +19,13 @@ export default function CourseCreation() {
   });
   const [roster, setRoster] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+
+  const handleSignOut = () => {
+    logout();
+    setTimeout(() => {
+      navigate("/");
+    }, 100);
+  };
 
   // Handle form input changes
   const handleInputChange = (e) => {
@@ -112,7 +119,15 @@ export default function CourseCreation() {
         <main className="flex-1 overflow-y-auto">
           <div className="py-6">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-              <h1 className="text-2xl font-semibold mb-8">Create New Course</h1>
+              <div className="flex justify-between items-center mb-8">
+                <h1 className="text-2xl font-semibold">Create New Course</h1>
+                <button
+                  onClick={handleSignOut}
+                  className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+                >
+                  Sign Out
+                </button>
+              </div>
 
               <form onSubmit={handleSubmit} className="space-y-8">
                 {/* Course Details Section */}

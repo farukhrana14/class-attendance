@@ -3,10 +3,12 @@ import { db } from "../firebase";
 import { doc, setDoc, deleteDoc, updateDoc } from "firebase/firestore";
 import { onSnapshot, collection, query, where } from "firebase/firestore";
 import {useAuth} from "../context/AuthContext.jsx";
+import { useNavigate } from "react-router-dom";
 
 
 export default function AdminTeacherManagement() {
-  const { userData } = useAuth(); // will contain role: "admin" | "teacher" | "student"
+  const { userData, logout } = useAuth(); // will contain role: "admin" | "teacher" | "student"
+  const navigate = useNavigate();
   const [teachers, setTeachers] = useState([]);
     useEffect(() => {
   const q = query(collection(db, "users"), where("role", "==", "teacher"));
@@ -115,11 +117,26 @@ export default function AdminTeacherManagement() {
   };
 
 
+  const handleSignOut = () => {
+    logout();
+    setTimeout(() => {
+      navigate("/");
+    }, 100);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-6 font-sans">
-      <h2 className="text-2xl font-semibold mb-6">
-        Admin Teacher Management
-      </h2>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-semibold">
+          Admin Teacher Management
+        </h2>
+        <button
+          onClick={handleSignOut}
+          className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+        >
+          Sign Out
+        </button>
+      </div>
 
       {userData?.role === "admin" && (
   <button

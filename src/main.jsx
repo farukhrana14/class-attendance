@@ -1,6 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext.jsx";
 import Home from "./pages/Home.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
@@ -11,9 +11,13 @@ import CourseCreation from "./components/CourseCreation.jsx";
 import CourseDetails from "./components/CourseDetails.jsx";
 import AdminRoute from "./routes/AdminRoute.jsx";
 import TeacherRoute from "./routes/TeacherRoute.jsx";
+import StudentAdminRoute from "./routes/StudentAdminRoute.jsx";
 import "./index.css";
+
 import NotAuthorized from "./pages/NotAuthorized.jsx";
 import StudentHome from "./pages/StudentHome.jsx";
+import StudentHomePage from "./pages/StudentHomePage.jsx";
+import Checkin from "./pages/Checkin.jsx";
 
 
 ReactDOM.createRoot(document.getElementById("root")).render(
@@ -89,6 +93,14 @@ ReactDOM.createRoot(document.getElementById("root")).render(
             }
           />
           <Route
+            path="/teacher/create-course"
+            element={
+              <TeacherRoute>
+                <CourseCreation />
+              </TeacherRoute>
+            }
+          />
+          <Route
             path="/teacher/courses/:courseId"
             element={
               <TeacherRoute>
@@ -96,7 +108,16 @@ ReactDOM.createRoot(document.getElementById("root")).render(
               </TeacherRoute>
             }
           />
-          <Route path="/student" element={<StudentHome />} />
+          <Route path="/student" element={<Navigate to="/student/home" replace />} />
+          <Route 
+            path="/student/home" 
+            element={
+              <StudentAdminRoute>
+                <StudentHomePage />
+              </StudentAdminRoute>
+            } 
+          />
+          <Route path="/checkin" element={<Checkin />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>
