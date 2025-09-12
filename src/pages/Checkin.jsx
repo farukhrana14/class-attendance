@@ -49,14 +49,31 @@ export default function Checkin() {
             id: doc.id,
             ...doc.data()
           }));
+
+          // Also fetch sections from pending students for this user
+          const pendingRef = collection(db, "pendingStudents");
+          const pendingQuery = query(pendingRef, where("email", "==", user.email));
+          const pendingSnap = await getDocs(pendingQuery);
+          
+          let userPendingData = null;
+          if (!pendingSnap.empty) {
+            userPendingData = pendingSnap.docs[0].data();
+          }
+
           setAvailableCourses(courses);
           
           // If only one course, auto-select it
           if (courses.length === 1) {
             setSelectedCourse(courses[0].id);
             // Get sections for the auto-selected course
-            const sections = [...new Set(courses.map(c => c.section).filter(Boolean))];
-            setAvailableSections(sections);
+            const courseSections = [...new Set(courses.map(c => c.section).filter(Boolean))];
+            
+            // Add user's pending section if it exists and not already in the list
+            if (userPendingData && userPendingData.section && !courseSections.includes(userPendingData.section)) {
+              courseSections.push(userPendingData.section);
+            }
+            
+            setAvailableSections(courseSections);
           }
         } catch (err) {
           console.error("Error fetching courses:", err);
@@ -72,22 +89,44 @@ export default function Checkin() {
 
   // Update available sections when course is selected
   useEffect(() => {
-    if (selectedCourse) {
-      const coursesWithSameName = availableCourses.filter(course => 
-        course.id === selectedCourse || 
-        course.courseCode === availableCourses.find(c => c.id === selectedCourse)?.courseCode
-      );
-      const sections = [...new Set(coursesWithSameName.map(c => c.section).filter(Boolean))];
-      setAvailableSections(sections);
-      
-      // If only one section, auto-select it
-      if (sections.length === 1) {
-        setSelectedSection(sections[0]);
-      } else {
-        setSelectedSection("");
+    const updateSections = async () => {
+      if (selectedCourse) {
+        const coursesWithSameName = availableCourses.filter(course => 
+          course.id === selectedCourse || 
+          course.courseCode === availableCourses.find(c => c.id === selectedCourse)?.courseCode
+        );
+        const courseSections = [...new Set(coursesWithSameName.map(c => c.section).filter(Boolean))];
+        
+        // Get user's pending section data
+        try {
+          const pendingRef = collection(db, "pendingStudents");
+          const pendingQuery = query(pendingRef, where("email", "==", user.email));
+          const pendingSnap = await getDocs(pendingQuery);
+          
+          if (!pendingSnap.empty) {
+            const userPendingData = pendingSnap.docs[0].data();
+            // Add pending section if it exists and not already in the list
+            if (userPendingData.section && !courseSections.includes(userPendingData.section)) {
+              courseSections.push(userPendingData.section);
+            }
+          }
+        } catch (err) {
+          console.error("Error fetching pending data:", err);
+        }
+        
+        setAvailableSections(courseSections);
+        
+        // If only one section, auto-select it
+        if (courseSections.length === 1) {
+          setSelectedSection(courseSections[0]);
+        } else {
+          setSelectedSection("");
+        }
       }
-    }
-  }, [selectedCourse, availableCourses]);
+    };
+
+    updateSections();
+  }, [selectedCourse, availableCourses, user]);
 
   const requestGpsPermission = () => {
     if ("geolocation" in navigator) {
@@ -132,7 +171,8 @@ export default function Checkin() {
         setLoading(false);
         return;
       }
-      if (!selectedSection) {
+      // Only require section if sections are available
+      if (availableSections.length > 0 && !selectedSection) {
         setError("Please select a section.");
         setLoading(false);
         return;
@@ -143,13 +183,24 @@ export default function Checkin() {
         return;
       }
 
-      // Find the matching course and section
-      const matchingCourse = availableCourses.find(course => 
-        course.id === selectedCourse && course.section === selectedSection
-      );
+      // Find the matching course
+      let matchingCourse = availableCourses.find(course => course.id === selectedCourse);
+      
+      // If no section is selected (because none available), use the course without section matching
+      if (!selectedSection || availableSections.length === 0) {
+        // Just use the selected course
+      } else {
+        // Try to find course with matching section
+        const courseWithSection = availableCourses.find(course => 
+          course.id === selectedCourse && course.section === selectedSection
+        );
+        if (courseWithSection) {
+          matchingCourse = courseWithSection;
+        }
+      }
 
       if (!matchingCourse) {
-        setError("No matching course and section found. Please contact your teacher.");
+        setError("No matching course found. Please contact your teacher.");
         setLoading(false);
         return;
       }
@@ -177,7 +228,7 @@ export default function Checkin() {
         studentEmail: user.email,
         studentName: userData?.name || user.displayName || user.email,
         studentId: studentSnap.docs[0].data().studentId || "",
-        section: selectedSection,
+        section: selectedSection || "Not specified",
         courseId: matchingCourse.id,
         courseCode: matchingCourse.courseCode || "",
         courseName: matchingCourse.courseName || matchingCourse.title || "",
@@ -209,6 +260,23 @@ export default function Checkin() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-6 font-sans">
+      {/* Sign Out Button - positioned at top right when user is signed in */}
+      {user && (
+        <div className="absolute top-4 right-4">
+          <button
+            onClick={() => {
+              logout();
+              setTimeout(() => {
+                navigate("/");
+              }, 100);
+            }}
+            className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
+          >
+            Sign Out
+          </button>
+        </div>
+      )}
+
       <div className="bg-white rounded-lg shadow-md p-8 w-full max-w-md">
         <h1 className="text-2xl font-semibold mb-6 text-gray-800 text-center">Student Check-in</h1>
         
@@ -293,30 +361,39 @@ export default function Checkin() {
             {selectedCourse && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Select Section
+                  Select Section {availableSections.length === 0 && <span className="text-gray-500 text-xs">(Optional)</span>}
                 </label>
-                <select
-                  value={selectedSection}
-                  onChange={(e) => setSelectedSection(e.target.value)}
-                  disabled={availableSections.length === 1}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
-                  required
-                >
-                  <option value="">Choose a section...</option>
-                  {availableSections.map(section => (
-                    <option key={section} value={section}>
-                      Section {section}
-                    </option>
-                  ))}
-                </select>
+                {availableSections.length > 0 ? (
+                  <select
+                    value={selectedSection}
+                    onChange={(e) => setSelectedSection(e.target.value)}
+                    disabled={availableSections.length === 1}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                    required={availableSections.length > 0}
+                  >
+                    <option value="">Choose a section...</option>
+                    {availableSections.map(section => (
+                      <option key={section} value={section}>
+                        Section {section}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <div className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500">
+                    No sections available for this course
+                  </div>
+                )}
                 {availableSections.length === 1 && (
                   <p className="text-xs text-gray-500 mt-1">Only one section available (auto-selected)</p>
+                )}
+                {availableSections.length === 0 && (
+                  <p className="text-xs text-gray-500 mt-1">Section information will be added when teacher sets up course sections</p>
                 )}
               </div>
             )}
 
             {/* GPS Permission */}
-            {selectedCourse && selectedSection && (
+            {selectedCourse && (availableSections.length === 0 || selectedSection) && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Location Verification
@@ -347,7 +424,7 @@ export default function Checkin() {
             )}
 
             {/* Submit Attendance Button */}
-            {selectedCourse && selectedSection && gpsPermission && (
+            {selectedCourse && (availableSections.length === 0 || selectedSection) && gpsPermission && (
               <button
                 onClick={handleCheckin}
                 disabled={loading}

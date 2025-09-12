@@ -27,6 +27,10 @@ export default function RollCall() {
   const [lastSavedDate, setLastSavedDate] = useState(null);
   const [lastSavedAttendance, setLastSavedAttendance] = useState({});
   const [attendanceModified, setAttendanceModified] = useState(false);
+  
+  // Message modal state
+  const [showMessage, setShowMessage] = useState(false);
+  const [messageContent, setMessageContent] = useState({ type: "", title: "", message: "", onConfirm: null });
 
   const today = new Date().toISOString().split('T')[0];
   const dateId = today.replace(/-/g, ''); // Convert YYYY-MM-DD to YYYYMMDD
@@ -36,6 +40,26 @@ export default function RollCall() {
     setTimeout(() => {
       navigate("/");
     }, 100);
+  };
+  
+  // Show message modal
+  const showMessageModal = (type, title, message, onConfirm = null) => {
+    setMessageContent({ type, title, message, onConfirm });
+    setShowMessage(true);
+  };
+
+  // Close message modal
+  const closeMessageModal = () => {
+    setShowMessage(false);
+    setMessageContent({ type: "", title: "", message: "", onConfirm: null });
+  };
+
+  // Handle confirmation
+  const handleConfirm = () => {
+    if (messageContent.onConfirm) {
+      messageContent.onConfirm();
+    }
+    closeMessageModal();
   };
 
   // Fetch course details and roster
@@ -176,14 +200,25 @@ export default function RollCall() {
       setLastSavedAttendance({...attendance});
       setAttendanceModified(false);
       
-      alert("Attendance saved successfully!");
+      // Show success message in modal
+      showMessageModal(
+        "success", 
+        "Attendance Saved", 
+        "Attendance records have been successfully saved."
+      );
       
     } catch (err) {
       console.error("Detailed error saving attendance:", err);
       console.error("Error name:", err.name);
       console.error("Error message:", err.message);
       console.error("Error code:", err.code);
-      alert(`Failed to save attendance. Error: ${err.message}`);
+      
+      // Show error message in modal
+      showMessageModal(
+        "error", 
+        "Save Error", 
+        `Failed to save attendance. Error: ${err.message}`
+      );
     } finally {
       setSaving(false);
     }
@@ -353,6 +388,69 @@ export default function RollCall() {
           )}
         </div>
       </div>
+
+      {/* Message Modal */}
+      {showMessage && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div className={`p-4 border-b ${
+              messageContent.type === 'success' ? 'border-green-200 bg-green-50' :
+              messageContent.type === 'error' ? 'border-red-200 bg-red-50' :
+              messageContent.type === 'warning' ? 'border-yellow-200 bg-yellow-50' :
+              'border-gray-200 bg-gray-50'
+            }`}>
+              <div className="flex items-center">
+                <div className={`text-2xl mr-3 ${
+                  messageContent.type === 'success' ? 'text-green-600' :
+                  messageContent.type === 'error' ? 'text-red-600' :
+                  messageContent.type === 'warning' ? 'text-yellow-600' :
+                  'text-gray-600'
+                }`}>
+                  {messageContent.type === 'success' ? '✅' :
+                   messageContent.type === 'error' ? '❌' :
+                   messageContent.type === 'warning' ? '⚠️' : 'ℹ️'}
+                </div>
+                <h3 className={`text-lg font-semibold ${
+                  messageContent.type === 'success' ? 'text-green-900' :
+                  messageContent.type === 'error' ? 'text-red-900' :
+                  messageContent.type === 'warning' ? 'text-yellow-900' :
+                  'text-gray-900'
+                }`}>
+                  {messageContent.title}
+                </h3>
+              </div>
+            </div>
+            
+            <div className="p-6">
+              <p className="text-gray-700 whitespace-pre-line">
+                {messageContent.message}
+              </p>
+            </div>
+            
+            <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end space-x-3">
+              {messageContent.onConfirm && (
+                <button
+                  onClick={closeMessageModal}
+                  className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 font-medium"
+                >
+                  Cancel
+                </button>
+              )}
+              <button
+                onClick={messageContent.onConfirm ? handleConfirm : closeMessageModal}
+                className={`px-4 py-2 rounded-md font-medium ${
+                  messageContent.type === 'success' ? 'bg-green-600 hover:bg-green-700 text-white' :
+                  messageContent.type === 'error' ? 'bg-red-600 hover:bg-red-700 text-white' :
+                  messageContent.type === 'warning' ? 'bg-yellow-600 hover:bg-yellow-700 text-white' :
+                  'bg-gray-600 hover:bg-gray-700 text-white'
+                }`}
+              >
+                {messageContent.onConfirm ? 'Confirm' : 'OK'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
