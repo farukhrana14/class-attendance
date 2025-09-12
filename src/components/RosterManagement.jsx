@@ -55,6 +55,9 @@ export default function RosterManagement() {
   const [attendanceData, setAttendanceData] = useState({}); // Student attendance data
   const [attendanceStats, setAttendanceStats] = useState({}); // Attendance statistics
   const [selectedStudents, setSelectedStudents] = useState([]); // Selected students for bulk actions
+  const [editingStudent, setEditingStudent] = useState(null); // Currently editing student
+  const [showEditModal, setShowEditModal] = useState(false); // Show edit student modal
+  const [editFormData, setEditFormData] = useState({ name: "", email: "", studentId: "", section: "" }); // Edit form data
 
   // Show message modal
   const showMessageModal = (type, title, message, onConfirm = null) => {
@@ -335,6 +338,106 @@ export default function RosterManagement() {
   // Remove individual staged student
   const handleRemoveStaged = (email) => {
     setStagedStudents(prev => prev.filter(s => s.email !== email));
+  };
+
+  // Open edit modal for a student
+  const handleEditStudent = (student) => {
+    setEditingStudent(student);
+    setEditFormData({
+      name: student.name || "",
+      email: student.email || "",
+      studentId: student.studentId || "",
+      section: student.section || ""
+    });
+    setShowEditModal(true);
+  };
+
+  // Handle edit form changes
+  const handleEditFormChange = (e) => {
+    const { name, value } = e.target;
+    setEditFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  // Save edited student
+  const handleSaveEdit = async () => {
+    if (!editingStudent) return;
+    
+    try {
+      // Basic validation
+      if (!editFormData.name || !editFormData.email) {
+        showMessageModal("error", "Validation Error", "Name and email are required");
+        return;
+      }
+      
+      // Check if email changed and if it exists for another student
+      if (editFormData.email !== editingStudent.email) {
+        const existingStudent = students.find(s => 
+          s.email.toLowerCase() === editFormData.email.toLowerCase() && 
+          s.email !== editingStudent.email
+        );
+        
+        if (existingStudent) {
+          showMessageModal("error", "Duplicate Email", "Another student with this email already exists");
+          return;
+        }
+      }
+      
+      // If email is changed, we need to delete the old document and create a new one
+      // because the email is the document ID
+      if (editFormData.email !== editingStudent.email) {
+        // Create new student document
+        await setDoc(doc(db, "courses", courseId, "students", editFormData.email), {
+          name: editFormData.name,
+          email: editFormData.email,
+          studentId: editFormData.studentId,
+          section: editFormData.section
+        });
+        
+        // Delete old student document
+        await deleteDoc(doc(db, "courses", courseId, "students", editingStudent.email));
+        
+        // Update local state
+        setStudents(prev => [
+          ...prev.filter(s => s.email !== editingStudent.email),
+          { 
+            id: editFormData.email, 
+            ...editFormData 
+          }
+        ]);
+      } else {
+        // Email is not changed, simple update
+        await setDoc(doc(db, "courses", courseId, "students", editingStudent.email), {
+          name: editFormData.name,
+          email: editFormData.email,
+          studentId: editFormData.studentId,
+          section: editFormData.section
+        }, { merge: true });
+        
+        // Update local state
+        setStudents(prev => prev.map(student => 
+          student.email === editingStudent.email 
+            ? { id: student.id, ...editFormData } 
+            : student
+        ));
+      }
+      
+      // Reset edit state
+      setShowEditModal(false);
+      setEditingStudent(null);
+      showMessageModal("success", "Success", "Student information updated successfully");
+    } catch (error) {
+      console.error("Error updating student:", error);
+      showMessageModal("error", "Update Error", "Failed to update student information");
+    }
+  };
+  
+  // Cancel edit
+  const handleCancelEdit = () => {
+    setShowEditModal(false);
+    setEditingStudent(null);
   };
 
   const [sectionFilter, setSectionFilter] = useState('all');
@@ -855,8 +958,8 @@ export default function RosterManagement() {
                 </colgroup>
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      <div className="flex items-center justify-center">
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <div className="flex items-center">
                         <input
                           type="checkbox"
                           className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
@@ -869,6 +972,7 @@ export default function RosterManagement() {
                           }}
                           checked={selectedStudents.length === filteredStudents.length && filteredStudents.length > 0}
                         />
+                        <span className="ml-2 text-xs font-medium text-gray-500 uppercase">Remove</span>
                       </div>
                     </th>
                     <th className="px-3 sm:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -887,7 +991,7 @@ export default function RosterManagement() {
                       Attendance
                     </th>
                     <th className="px-3 sm:px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
+                      Modify
                     </th>
                   </tr>
                 </thead>
@@ -947,10 +1051,10 @@ export default function RosterManagement() {
                       </td>
                       <td className="px-3 sm:px-4 py-3.5 whitespace-nowrap text-sm font-medium text-center">
                         <button
-                          onClick={() => handleRemoveStudent(student.email)}
-                          className="text-red-600 hover:text-red-900"
+                          onClick={() => handleEditStudent(student)}
+                          className="text-blue-600 hover:text-blue-900"
                         >
-                          Remove
+                          Edit
                         </button>
                       </td>
                     </tr>
@@ -1047,6 +1151,96 @@ export default function RosterManagement() {
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium"
               >
                 Save All ({stagedStudents.length})
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Student Modal */}
+      {showEditModal && editingStudent && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div className="p-6 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Edit Student Information
+              </h3>
+            </div>
+            
+            <div className="p-6">
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                    Full Name
+                  </label>
+                  <input
+                    type="text"
+                    id="name"
+                    name="name"
+                    value={editFormData.name}
+                    onChange={handleEditFormChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    value={editFormData.email}
+                    onChange={handleEditFormChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <label htmlFor="studentId" className="block text-sm font-medium text-gray-700 mb-1">
+                    Student ID
+                  </label>
+                  <input
+                    type="text"
+                    id="studentId"
+                    name="studentId"
+                    value={editFormData.studentId}
+                    onChange={handleEditFormChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                
+                <div>
+                  <label htmlFor="section" className="block text-sm font-medium text-gray-700 mb-1">
+                    Section
+                  </label>
+                  <input
+                    type="text"
+                    id="section"
+                    name="section"
+                    value={editFormData.section}
+                    onChange={handleEditFormChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+            </div>
+            
+            <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end space-x-3">
+              <button
+                onClick={handleCancelEdit}
+                className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveEdit}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium"
+              >
+                Save Changes
               </button>
             </div>
           </div>
