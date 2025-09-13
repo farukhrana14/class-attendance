@@ -14,176 +14,6 @@ import {
 } from "firebase/firestore";
   // const [allAttendance, setAllAttendance] = useState([]);
 
-// Presentational: CourseHeader
-function CourseHeader({ course, today, courseId, navigate }) {
-  return (
-    <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-      <div className="flex justify-between items-start mb-4">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-800">
-            {course.courseCode} - {course.courseName}
-          </h1>
-          <p className="text-gray-600 mt-1">
-            {course.university} • Section {course.section} • {course.semester}
-          </p>
-          <p className="text-sm text-gray-500 mt-1">
-            Roll Call for {new Date(today).toLocaleDateString()}
-          </p>
-        </div>
-        <button
-          onClick={() => navigate(`/teacher/courses/${courseId}`)}
-          className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
-        >
-          Back to Course
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// Presentational: RosterList
-function RosterList({ students, attendance, handleAttendanceChange }) {
-  if (students.length === 0) {
-    return (
-      <div className="text-center py-8">
-        <p className="text-gray-500 text-lg">No students in roster</p>
-        <p className="text-sm text-gray-400 mt-2">
-          Add students to the course roster to take attendance
-        </p>
-      </div>
-    );
-  }
-  return (
-    <div className="space-y-4">
-      {students.map((student) => (
-        <div
-          key={student.email}
-          className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50"
-        >
-          <div className="flex-1">
-            <h3 className="font-semibold text-gray-800">{student.name}</h3>
-            <p className="text-sm text-gray-600">{student.email}</p>
-            {student.studentId && (
-              <p className="text-sm text-gray-500">ID: {student.studentId}</p>
-            )}
-          </div>
-          <div className="flex space-x-2">
-            {["present", "late", "absent"].map((status) => (
-              <button
-                key={status}
-                onClick={() => handleAttendanceChange(student.email, status)}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                  attendance[student.email] === status
-                    ? status === "present"
-                      ? "bg-green-600 text-white"
-                      : status === "late"
-                      ? "bg-yellow-600 text-white"
-                      : "bg-red-600 text-white"
-                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                }`}
-              >
-                {status.charAt(0).toUpperCase() + status.slice(1)}
-              </button>
-            ))}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// Presentational: AttendanceSummary
-function AttendanceSummary({ students, attendance }) {
-  if (students.length === 0) return null;
-  return (
-    <div className="mt-8 grid grid-cols-3 gap-4">
-      <div className="bg-green-50 p-4 rounded-lg text-center">
-        <p className="text-2xl font-bold text-green-600">
-          {Object.values(attendance).filter(status => status === "present").length}
-        </p>
-        <p className="text-sm text-green-700">Present</p>
-      </div>
-      <div className="bg-yellow-50 p-4 rounded-lg text-center">
-        <p className="text-2xl font-bold text-yellow-600">
-          {Object.values(attendance).filter(status => status === "late").length}
-        </p>
-        <p className="text-sm text-yellow-700">Late</p>
-      </div>
-      <div className="bg-red-50 p-4 rounded-lg text-center">
-        <p className="text-2xl font-bold text-red-600">
-          {students.length - Object.keys(attendance).length + 
-           Object.values(attendance).filter(status => status === "absent").length}
-        </p>
-        <p className="text-sm text-red-700">Absent</p>
-      </div>
-    </div>
-  );
-}
-
-// Presentational: MessageModal
-function MessageModal({ show, messageContent, closeMessageModal, handleConfirm }) {
-  if (!show) return null;
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-        <div className={`p-4 border-b ${
-          messageContent.type === 'success' ? 'border-green-200 bg-green-50' :
-          messageContent.type === 'error' ? 'border-red-200 bg-red-50' :
-          messageContent.type === 'warning' ? 'border-yellow-200 bg-yellow-50' :
-          'border-gray-200 bg-gray-50'
-        }`}>
-          <div className="flex items-center">
-            <div className={`text-2xl mr-3 ${
-              messageContent.type === 'success' ? 'text-green-600' :
-              messageContent.type === 'error' ? 'text-red-600' :
-              messageContent.type === 'warning' ? 'text-yellow-600' :
-              'text-gray-600'
-            }`}>
-              {messageContent.type === 'success' ? '✅' :
-               messageContent.type === 'error' ? '❌' :
-               messageContent.type === 'warning' ? '⚠️' : 'ℹ️'}
-            </div>
-            <h3 className={`text-lg font-semibold ${
-              messageContent.type === 'success' ? 'text-green-900' :
-              messageContent.type === 'error' ? 'text-red-900' :
-              messageContent.type === 'warning' ? 'text-yellow-900' :
-              'text-gray-900'
-            }`}>
-              {messageContent.title}
-            </h3>
-          </div>
-        </div>
-        <div className="p-6">
-          <p className="text-gray-700 whitespace-pre-line">
-            {messageContent.message}
-          </p>
-        </div>
-        <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end space-x-3">
-          {messageContent.onConfirm && (
-            <button
-              onClick={closeMessageModal}
-              className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 font-medium"
-            >
-              Cancel
-            </button>
-          )}
-          <button
-            onClick={messageContent.onConfirm ? handleConfirm : closeMessageModal}
-            className={`px-4 py-2 rounded-md font-medium ${
-              messageContent.type === 'success' ? 'bg-green-600 hover:bg-green-700 text-white' :
-              messageContent.type === 'error' ? 'bg-red-600 hover:bg-red-700 text-white' :
-              messageContent.type === 'warning' ? 'bg-yellow-600 hover:bg-yellow-700 text-white' :
-              'bg-gray-600 hover:bg-gray-700 text-white'
-            }`}
-          >
-            {messageContent.onConfirm ? 'Confirm' : 'OK'}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function RollCall() {
   const { courseId } = useParams();
   const navigate = useNavigate();
@@ -443,7 +273,27 @@ export default function RollCall() {
 
       <div className="max-w-4xl mx-auto">
         {/* Course Header */}
-        {course && <CourseHeader course={course} today={today} courseId={courseId} navigate={navigate} />}
+        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+          <div className="flex justify-between items-start mb-4">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-800">
+                {course.courseCode} - {course.courseName}
+              </h1>
+              <p className="text-gray-600 mt-1">
+                {course.university} • Section {course.section} • {course.semester}
+              </p>
+              <p className="text-sm text-gray-500 mt-1">
+                Roll Call for {new Date(today).toLocaleDateString()}
+              </p>
+            </div>
+            <button
+              onClick={() => navigate(`/teacher/courses/${courseId}`)}
+              className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
+            >
+              Back to Course
+            </button>
+          </div>
+        </div>
 
         {/* Student Roster */}
         <div className="bg-white rounded-lg shadow-md p-6">
@@ -467,12 +317,141 @@ export default function RollCall() {
             )}
           </div>
 
-          <RosterList students={students} attendance={attendance} handleAttendanceChange={handleAttendanceChange} />
-          <AttendanceSummary students={students} attendance={attendance} />
+          {students.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-gray-500 text-lg">No students in roster</p>
+              <p className="text-sm text-gray-400 mt-2">
+                Add students to the course roster to take attendance
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {students.map((student) => (
+                <div
+                  key={student.email}
+                  className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50"
+                >
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-gray-800">{student.name}</h3>
+                    <p className="text-sm text-gray-600">{student.email}</p>
+                    {student.studentId && (
+                      <p className="text-sm text-gray-500">ID: {student.studentId}</p>
+                    )}
+                  </div>
+                  
+                  <div className="flex space-x-2">
+                    {["present", "late", "absent"].map((status) => (
+                      <button
+                        key={status}
+                        onClick={() => handleAttendanceChange(student.email, status)}
+                        className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                          attendance[student.email] === status
+                            ? status === "present"
+                              ? "bg-green-600 text-white"
+                              : status === "late"
+                              ? "bg-yellow-600 text-white"
+                              : "bg-red-600 text-white"
+                            : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                        }`}
+                      >
+                        {status.charAt(0).toUpperCase() + status.slice(1)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Attendance Summary */}
+          {students.length > 0 && (
+            <div className="mt-8 grid grid-cols-3 gap-4">
+              <div className="bg-green-50 p-4 rounded-lg text-center">
+                <p className="text-2xl font-bold text-green-600">
+                  {Object.values(attendance).filter(status => status === "present").length}
+                </p>
+                <p className="text-sm text-green-700">Present</p>
+              </div>
+              <div className="bg-yellow-50 p-4 rounded-lg text-center">
+                <p className="text-2xl font-bold text-yellow-600">
+                  {Object.values(attendance).filter(status => status === "late").length}
+                </p>
+                <p className="text-sm text-yellow-700">Late</p>
+              </div>
+              <div className="bg-red-50 p-4 rounded-lg text-center">
+                <p className="text-2xl font-bold text-red-600">
+                  {students.length - Object.keys(attendance).length + 
+                   Object.values(attendance).filter(status => status === "absent").length}
+                </p>
+                <p className="text-sm text-red-700">Absent</p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
-      <MessageModal show={showMessage} messageContent={messageContent} closeMessageModal={closeMessageModal} handleConfirm={handleConfirm} />
+      {/* Message Modal */}
+      {showMessage && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div className={`p-4 border-b ${
+              messageContent.type === 'success' ? 'border-green-200 bg-green-50' :
+              messageContent.type === 'error' ? 'border-red-200 bg-red-50' :
+              messageContent.type === 'warning' ? 'border-yellow-200 bg-yellow-50' :
+              'border-gray-200 bg-gray-50'
+            }`}>
+              <div className="flex items-center">
+                <div className={`text-2xl mr-3 ${
+                  messageContent.type === 'success' ? 'text-green-600' :
+                  messageContent.type === 'error' ? 'text-red-600' :
+                  messageContent.type === 'warning' ? 'text-yellow-600' :
+                  'text-gray-600'
+                }`}>
+                  {messageContent.type === 'success' ? '✅' :
+                   messageContent.type === 'error' ? '❌' :
+                   messageContent.type === 'warning' ? '⚠️' : 'ℹ️'}
+                </div>
+                <h3 className={`text-lg font-semibold ${
+                  messageContent.type === 'success' ? 'text-green-900' :
+                  messageContent.type === 'error' ? 'text-red-900' :
+                  messageContent.type === 'warning' ? 'text-yellow-900' :
+                  'text-gray-900'
+                }`}>
+                  {messageContent.title}
+                </h3>
+              </div>
+            </div>
+            
+            <div className="p-6">
+              <p className="text-gray-700 whitespace-pre-line">
+                {messageContent.message}
+              </p>
+            </div>
+            
+            <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end space-x-3">
+              {messageContent.onConfirm && (
+                <button
+                  onClick={closeMessageModal}
+                  className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 font-medium"
+                >
+                  Cancel
+                </button>
+              )}
+              <button
+                onClick={messageContent.onConfirm ? handleConfirm : closeMessageModal}
+                className={`px-4 py-2 rounded-md font-medium ${
+                  messageContent.type === 'success' ? 'bg-green-600 hover:bg-green-700 text-white' :
+                  messageContent.type === 'error' ? 'bg-red-600 hover:bg-red-700 text-white' :
+                  messageContent.type === 'warning' ? 'bg-yellow-600 hover:bg-yellow-700 text-white' :
+                  'bg-gray-600 hover:bg-gray-700 text-white'
+                }`}
+              >
+                {messageContent.onConfirm ? 'Confirm' : 'OK'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

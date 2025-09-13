@@ -1,4 +1,30 @@
 import React, { useState, useEffect } from "react";
+// Simple ErrorBoundary for dashboard content
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, errorInfo) {
+    // You can log errorInfo to an error reporting service here
+    // console.error(error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen flex flex-col items-center justify-center bg-red-50">
+          <h2 className="text-2xl font-bold text-red-700 mb-2">Something went wrong.</h2>
+          <p className="text-red-600 mb-4">{this.state.error?.message || 'An unexpected error occurred.'}</p>
+          <button onClick={() => window.location.reload()} className="bg-blue-600 text-white px-4 py-2 rounded-lg">Reload Page</button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 import { Routes, Route, NavLink, useNavigate, useLocation, useParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { collection, query, where, getDocs, onSnapshot, addDoc, serverTimestamp, doc, getDoc, updateDoc } from "firebase/firestore";
@@ -974,24 +1000,26 @@ export default function TeacherDashboard() {
 
       {/* Main Content */}
       <main className="flex-1 p-6 overflow-auto">
-        <Routes>
-          <Route path="/" element={<DashboardContent />} />
-          <Route path="/courses" element={<CoursesList courses={courses} loading={loading} navigate={navigate} />} />
-          <Route path="/courses/roster/:courseId" element={<RosterManagement />} />
-          <Route path="/courses/:courseId" element={<CourseDetails />} />
-          <Route path="/courses/:courseId/*" element={<CourseDetails />} />
-          <Route path="/courses/edit/:courseId" element={<EditCourse onCourseUpdated={fetchCourses} />} />
-          <Route path="/create-course" element={<CreateCourse onCourseCreated={fetchCourses} />} />
-          <Route path="/add-students" element={<AddStudents courses={courses} />} />
-          {/* Routes temporarily disabled until student signup is enabled */}
-          {/* <Route path="/pending-students" element={<PendingStudents />} /> */}
-          {/* <Route path="/pending-enrollments" element={<PendingEnrollments />} /> */}
-          <Route path="/attendance" element={<RegisterAttendance courses={courses} />} />
-          <Route path="/courses/:courseId/rollcall" element={<RollCall />} />
-          <Route path="/reports" element={<Reports courses={courses} />} />
-          <Route path="/courses/:courseId/reports" element={<CourseAttendanceReport />} />
-          <Route path="/settings" element={<Settings />} />
-        </Routes>
+        <ErrorBoundary>
+          <Routes>
+            <Route path="/" element={<DashboardContent />} />
+            <Route path="/courses" element={<CoursesList courses={courses} loading={loading} navigate={navigate} />} />
+            <Route path="/courses/roster/:courseId" element={<RosterManagement />} />
+            <Route path="/courses/:courseId" element={<CourseDetails />} />
+            <Route path="/courses/:courseId/*" element={<CourseDetails />} />
+            <Route path="/courses/edit/:courseId" element={<EditCourse onCourseUpdated={fetchCourses} />} />
+            <Route path="/create-course" element={<CreateCourse onCourseCreated={fetchCourses} />} />
+            <Route path="/add-students" element={<AddStudents courses={courses} />} />
+            {/* Routes temporarily disabled until student signup is enabled */}
+            {/* <Route path="/pending-students" element={<PendingStudents />} /> */}
+            {/* <Route path="/pending-enrollments" element={<PendingEnrollments />} /> */}
+            <Route path="/attendance" element={<RegisterAttendance courses={courses} />} />
+            <Route path="/courses/:courseId/rollcall" element={<RollCall />} />
+            <Route path="/reports" element={<Reports courses={courses} />} />
+            <Route path="/courses/:courseId/reports" element={<CourseAttendanceReport />} />
+            <Route path="/settings" element={<Settings />} />
+          </Routes>
+        </ErrorBoundary>
       </main>
     </div>
   );
