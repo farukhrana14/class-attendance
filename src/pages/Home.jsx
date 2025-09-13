@@ -4,6 +4,10 @@ import { Link, Navigate } from "react-router-dom";
 export default function Home() {
   const { user, userData, login, logout, checking } = useAuth();
 
+  // Debug: Log user and userData on landing page
+  console.log("[Landing Page] user:", user);
+  console.log("[Landing Page] userData:", userData);
+
   if (checking) return <p>Loading...</p>;
 
   // Don't auto-redirect users to registration from home page

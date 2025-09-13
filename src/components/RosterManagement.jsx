@@ -40,7 +40,8 @@ export default function RosterManagement() {
     name: "",
     email: "",
     studentId: "",
-    section: ""
+    section: "",
+    courseName: ""
   });
   const [adding, setAdding] = useState(false);
   const [bulkInput, setBulkInput] = useState("");
@@ -145,7 +146,7 @@ export default function RosterManagement() {
   const handleAddStudent = async (e) => {
     e.preventDefault();
     
-    if (!newStudent.name || !newStudent.email || !newStudent.studentId || !newStudent.section) {
+    if (!newStudent.name || !newStudent.email || !newStudent.studentId || !newStudent.section || !newStudent.courseName) {
       showMessageModal("error", "Validation Error", "All fields are required");
       return;
     }
@@ -165,8 +166,15 @@ export default function RosterManagement() {
     }
 
     // Add to staging area
-    setStagedStudents(prev => [...prev, { ...newStudent, id: newStudent.email }]);
-    setNewStudent({ name: "", email: "", studentId: "", section: "" });
+    setStagedStudents(prev => [
+      ...prev,
+      {
+        ...newStudent,
+        id: newStudent.email,
+        enrolledCourses: [newStudent.courseName]
+      }
+    ]);
+    setNewStudent({ name: "", email: "", studentId: "", section: "", courseName: "" });
     setShowPreview(true);
   };
 
@@ -692,7 +700,7 @@ export default function RosterManagement() {
                 placeholder="Student Name"
                 value={newStudent.name}
                 onChange={(e) => setNewStudent(prev => ({ ...prev, name: e.target.value }))}
-                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hidden"
                 required
               />
               <input
@@ -700,7 +708,7 @@ export default function RosterManagement() {
                 placeholder="Email Address"
                 value={newStudent.email}
                 onChange={(e) => setNewStudent(prev => ({ ...prev, email: e.target.value }))}
-                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hidden"
                 required
               />
               <input
@@ -708,7 +716,7 @@ export default function RosterManagement() {
                 placeholder="Student ID"
                 value={newStudent.studentId}
                 onChange={(e) => setNewStudent(prev => ({ ...prev, studentId: e.target.value }))}
-                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hidden"
                 required
               />
               <input
@@ -716,15 +724,22 @@ export default function RosterManagement() {
                 placeholder="Section"
                 value={newStudent.section}
                 onChange={(e) => setNewStudent(prev => ({ ...prev, section: e.target.value }))}
-                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hidden"
+                required
+              />
+              <input
+                type="text"
+                placeholder="Course Name"
+                value={newStudent.courseName}
+                onChange={(e) => setNewStudent(prev => ({ ...prev, courseName: e.target.value }))}
+                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hidden"
                 required
               />
               <button
                 type="submit"
-                disabled={adding}
-                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 font-medium"
+                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors font-medium hidden"
               >
-                {adding ? "Adding..." : "Add Student"}
+                Add Student
               </button>
             </form>
           ) : (
@@ -775,12 +790,12 @@ export default function RosterManagement() {
                 {!showManualEntry ? (
                   <div className="text-center">
                     <button
-                      onClick={() => setShowManualEntry(true)}
-                      className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors border border-gray-300"
+                      className="bg-gray-200 text-gray-400 px-4 py-2 rounded-lg cursor-not-allowed opacity-60 border border-gray-200"
+                      disabled
                     >
                       Manual Data Entry
                     </button>
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-gray-400 mt-1">
                       Alternative option for typing or pasting student data
                     </p>
                   </div>
