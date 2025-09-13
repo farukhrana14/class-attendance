@@ -4,6 +4,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 // Pages
 import Home from "./pages/Home.jsx";
 import StudentHome from "./pages/StudentHome.jsx";
+import StudentHomeNew from "./pages/StudentHomeNew.jsx";
 import TeacherDashboard from "./pages/TeacherDashboard.jsx"; // Now using the enhanced version
 
 export default function App() {
@@ -11,6 +12,7 @@ export default function App() {
     <Routes>
       {/* Public / hub */}
       <Route path="/" element={<Home />} />
+      <Route path="/student-new" element={<StudentHomeNew />} />
 
       {/* Student */}
       <Route path="/student" element={<StudentHome />} />

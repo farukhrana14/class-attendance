@@ -431,25 +431,36 @@ export default function RollCall() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-6 font-sans">
-      {/* Header with Sign Out button */}
-      <div className="absolute top-4 right-4">
+      {/* Header with Sign Out and Back to Course buttons (mobile only) */}
+      <div className="absolute top-4 right-4 flex space-x-2 md:hidden">
         <button
           onClick={handleSignOut}
           className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
         >
           Sign Out
         </button>
+        {course && (
+          <button
+            onClick={() => navigate(`/teacher/courses/${courseId}`)}
+            className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors md:hidden"
+          >
+            Back to Course
+          </button>
+        )}
       </div>
 
       <div className="max-w-4xl mx-auto">
         {/* Course Header */}
         {course && <CourseHeader course={course} today={today} courseId={courseId} navigate={navigate} />}
 
-        {/* Student Roster */}
-        <div className="bg-white rounded-lg shadow-md p-6">
+        {/* Attendance Summary Row (moved above container) */}
+        <AttendanceSummary students={students} attendance={attendance} />
+
+        {/* Student's Attendance */}
+        <div className="bg-white rounded-lg shadow-md p-6 relative flex flex-col mt-8">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-semibold text-gray-800">
-              Student Roster ({students.length} students)
+              Student's Attendance ({students.length} students)
             </h2>
             {shouldShowSaveButton() && (
               <button
@@ -468,7 +479,19 @@ export default function RollCall() {
           </div>
 
           <RosterList students={students} attendance={attendance} handleAttendanceChange={handleAttendanceChange} />
-          <AttendanceSummary students={students} attendance={attendance} />
+
+          {/* Bottom Save Attendance button, aligned with top button */}
+          <div className="flex justify-end mt-8">
+            {shouldShowSaveButton() && (
+              <button
+                onClick={saveAttendance}
+                disabled={saving}
+                className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 font-semibold"
+              >
+                {saving ? "Saving..." : "Save Attendance"}
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
