@@ -54,16 +54,20 @@ export function AuthProvider({ children }) {
           // Redirect based on role, but don't redirect if already on a valid path
           const currentPath = window.location.pathname;
           const teacherPaths = ['/teacher'];
+          const studentPaths = ['/student', '/student-profile'];
           const isOnTeacherPath = teacherPaths.some(path => currentPath.startsWith(path));
-          
+          const isOnStudentPath = studentPaths.some(path => currentPath.startsWith(path));
+
           if (data.role === "teacher" || data.role === "admin") {
             // Only redirect if not already on a teacher path
             if (!isOnTeacherPath) {
               navigate("/teacher", { replace: true });
             }
           } else {
-            // students and unknown roles go to /student
-            navigate("/student", { replace: true });
+            // students and unknown roles go to /student, but allow /student-profile
+            if (!isOnStudentPath) {
+              navigate("/student", { replace: true });
+            }
           }
         } else {
           // No user document in Firestore: still navigate to /student so StudentHome can show "not authorized" message

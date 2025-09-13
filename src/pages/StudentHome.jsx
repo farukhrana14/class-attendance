@@ -1,107 +1,90 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { collection, query, where, getDocs, onSnapshot } from 'firebase/firestore';
-import { db } from '../firebase';
-import StudentEnrollments from '../components/StudentEnrollments';
-import AddCourseModal from '../components/AddCourseModal';
-import AttendanceHistory from '../components/AttendanceHistory';
+import React, { useState, useEffect } from "react";
+import { collection, getDocs, getDoc, setDoc, doc, query, where, Timestamp } from "firebase/firestore";
+import { db } from "../firebase";
+import { useAuth } from "../context/AuthContext";
 
-const StudentHome = () => {
-  const { user, userData, loading: authLoading } = useAuth();
-  const [authStatus, setAuthStatus] = useState('checking');
-  const [showAddCourseModal, setShowAddCourseModal] = useState(false);
-  const [enrollments, setEnrollments] = useState([]);
-  const [loadingEnrollments, setLoadingEnrollments] = useState(true);
+// Remove sampleStudent, use real userData from AuthContext
 
-  // Check user authorization status
-  useEffect(() => {
-    const checkAuthStatus = async () => {
-      if (!user || authLoading) return;
 
-      try {
-        // Check if user exists in users collection
-        if (!userData) {
-          console.log('User not found in users collection');
-          setAuthStatus('unauthorized');
-          return;
-        }
 
-        // Check if user has any active enrollments
-        const enrollmentsQuery = query(
-          collection(db, 'enrollments'),
-          where('studentEmail', '==', user.email),
-          where('status', '==', 'active')
+export default function StudentHome() {
+  const { user, userData, loading, logout } = useAuth();
+
+  const [isCheckinOpen, setIsCheckinOpen] = useState(false);
+  const [checkinCourse, setCheckinCourse] = useState(null);
+  const [gpsPermission, setGpsPermission] = useState(null);
+  const [confirmation, setConfirmation] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [enrolledCourses, setEnrolledCourses] = useState([]);
+  const [coursesLoading, setCoursesLoading] = useState(true);
+  // Track checked-in courses for today
+  const [checkedInToday, setCheckedInToday] = useState({}); // { [courseId]: true }
+
+  // Fetch enrolled courses from Firestore
+  // Always fetch checked-in status on mount and after check-in
+  const fetchCoursesAndAttendance = async () => {
+    if (!user || !user.email) return;
+    setCoursesLoading(true);
+    try {
+      const coursesSnap = await getDocs(collection(db, "courses"));
+      const courses = [];
+      const checkedIn = {};
+      const today = new Date().toISOString().slice(0, 10);
+      for (const docSnap of coursesSnap.docs) {
+        const courseData = { id: docSnap.id, ...docSnap.data() };
+        // Check if student is in students subcollection
+        const studentsSnap = await getDocs(collection(db, "courses", docSnap.id, "students"));
+        const isEnrolled = studentsSnap.docs.some(
+          (s) => (s.data().email || "").toLowerCase() === user.email.toLowerCase()
         );
-
-        const enrollmentsSnapshot = await getDocs(enrollmentsQuery);
-        
-        if (enrollmentsSnapshot.empty) {
-          console.log('User found but no active enrollments');
-          setAuthStatus('no-courses');
-        } else {
-          console.log('User found with active enrollments');
-          setAuthStatus('authorized');
+        if (isEnrolled) {
+          courses.push({
+            id: courseData.id,
+            code: courseData.courseCode || courseData.code || "",
+            title: courseData.courseName || courseData.title || "",
+            instructor: courseData.teacherName || courseData.instructor || "",
+            section: courseData.section || "",
+            semester: courseData.semester || "",
+          });
+          // Check attendance for today
+          const attendanceId = `${today}_${user.email}`;
+          const attendanceRef = doc(db, "courses", docSnap.id, "attendance", attendanceId);
+          const attendanceSnap = await getDoc(attendanceRef);
+          if (attendanceSnap.exists()) {
+            checkedIn[docSnap.id] = true;
+          }
         }
-      } catch (error) {
-        console.error('Error checking auth status:', error);
-        setAuthStatus('unauthorized');
       }
-    };
-
-    checkAuthStatus();
-  }, [user, userData, authLoading]);
-
-  // Set up real-time listener for enrollments when authorized
-  useEffect(() => {
-    if (authStatus !== 'authorized' || !user) return;
-
-    const enrollmentsQuery = query(
-      collection(db, 'enrollments'),
-      where('studentEmail', '==', user.email)
-    );
-
-    const unsubscribe = onSnapshot(enrollmentsQuery, (snapshot) => {
-      const enrollmentsData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      
-      const uniqueEnrollments = enrollmentsData.filter((enrollment, index, self) => 
-        index === self.findIndex(e => 
-          e.courseId === enrollment.courseId && 
-          e.section === enrollment.section &&
-          e.semester === enrollment.semester &&
-          e.year === enrollment.year
-        )
-      );
-      
-      setEnrollments(uniqueEnrollments);
-      setLoadingEnrollments(false);
-    });
-
-    return () => unsubscribe();
-  }, [authStatus, user]);
-
-  const handleAddCourseSuccess = () => {
-    setShowAddCourseModal(false);
+      setEnrolledCourses(courses);
+      setCheckedInToday(checkedIn);
+    } catch (err) {
+      setEnrolledCourses([]);
+      setCheckedInToday({});
+    } finally {
+      setCoursesLoading(false);
+    }
   };
 
-  // Show loading while checking authentication
-  if (authLoading || authStatus === 'checking') {
+  useEffect(() => {
+    fetchCoursesAndAttendance();
+    // eslint-disable-next-line
+  }, [user]);
+
+  // Loading state
+  if (loading || coursesLoading) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Checking authorization...</p>
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-500 border-t-transparent mx-auto mb-4"></div>
         </div>
       </div>
     );
   }
 
-  // Show not authorized message
-  if (authStatus === 'unauthorized') {
+  // Not signed in or not a student
+  if (!user || !userData || userData.role !== "student") {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="max-w-md w-full bg-white shadow-lg rounded-lg p-8 text-center">
           <div className="mb-6">
             <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
@@ -110,97 +93,305 @@ const StudentHome = () => {
               </svg>
             </div>
           </div>
-          
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">
-            Access Not Authorized
-          </h2>
-          
-          <p className="text-gray-600 mb-6">
-            You are not currently registered in our system. If you believe this is a mistake, 
-            please contact your teacher or instructor to be added to the course roster.
-          </p>
-          
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-            <p className="text-sm text-blue-800">
-              <strong>Note:</strong> Only students who have been added by their instructors 
-              can access the attendance system.
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Access Not Authorized</h2>
+          <p className="text-gray-600 mb-6">You are not signed in as a student. Please contact your instructor if you believe this is a mistake.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Use real userData for profile
+  const student = {
+    name: userData.name || user.displayName || user.email,
+    studentId: userData.studentId || "",
+    email: user.email,
+    university: userData.university || "",
+    semester: userData.semester || "",
+    section: userData.section || "",
+    avatarUrl: ""
+  };
+
+  const openCheckin = (course) => {
+    setCheckinCourse(course);
+    setGpsPermission(null);
+    setConfirmation(null);
+    setIsCheckinOpen(true);
+  };
+
+  const closeCheckin = () => {
+    setIsCheckinOpen(false);
+    setCheckinCourse(null);
+    setGpsPermission(null);
+    setConfirmation(null);
+  };
+
+  // Request location and store coordinates
+  const requestLocation = () => {
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser.");
+      setGpsPermission(false);
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => setGpsPermission({
+        allowed: true,
+        coords: {
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude
+        }
+      }),
+      () => setGpsPermission({ allowed: false })
+    );
+  };
+
+  // Real check-in logic
+  const submitCheckin = async () => {
+    if (!gpsPermission || !gpsPermission.allowed) {
+      alert("Please allow location access to check in.");
+      return;
+    }
+    if (!user || !user.email || !checkinCourse) {
+      alert("Missing user or course info.");
+      return;
+    }
+    setSubmitting(true);
+    setConfirmation(null);
+    try {
+      // Attendance doc: courses/{courseId}/attendance/{YYYY-MM-DD}_{studentEmail}
+      const today = new Date();
+      const dateStr = today.toISOString().slice(0, 10); // YYYY-MM-DD
+      const attendanceId = `${dateStr}_${user.email}`;
+      const attendanceRef = doc(db, "courses", checkinCourse.id, "attendance", attendanceId);
+      const attendanceSnap = await getDoc(attendanceRef);
+      if (attendanceSnap.exists()) {
+        setConfirmation(`Already checked in for ${checkinCourse.code} today.`);
+        setSubmitting(false);
+        // Refresh checked-in status from server
+        fetchCoursesAndAttendance();
+        return;
+      }
+      // Save attendance
+      await setDoc(attendanceRef, {
+        studentEmail: user.email,
+        studentId: userData.studentId || "",
+        name: userData.name || user.displayName || user.email,
+        checkedInAt: Timestamp.now(),
+        location: gpsPermission.coords,
+        courseId: checkinCourse.id,
+        courseCode: checkinCourse.code,
+        courseTitle: checkinCourse.title,
+        section: checkinCourse.section,
+        semester: checkinCourse.semester
+      });
+      setConfirmation(`Attendance marked successfully for ${checkinCourse.code} on ${dateStr}`);
+      // Refresh checked-in status from server
+      fetchCoursesAndAttendance();
+    } catch (err) {
+      setConfirmation("Failed to mark attendance. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 font-sans flex flex-col max-w-md mx-auto">
+      {/* Header */}
+      <header className="flex items-center justify-between bg-white p-4 shadow sticky top-0 z-10">
+        <div className="text-xl font-bold text-blue-600">ClassAttend</div>
+        <button
+          aria-label="Profile"
+          onClick={() => window.location.href = "/student-profile"}
+          className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center text-gray-600 font-bold"
+        >
+          {student.name.charAt(0)}
+        </button>
+      </header>
+
+      {/* Profile Info Card */}
+      <section className="bg-white p-4 m-4 rounded-lg shadow space-y-2">
+        <div className="flex items-center space-x-4">
+          <div className="w-16 h-16 bg-gray-300 rounded-full flex items-center justify-center text-2xl font-bold text-gray-600">
+            {student.name.charAt(0)}
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold">{student.name}</h2>
+            <p className="text-gray-600 text-sm">{student.studentId}</p>
+            <p className="text-gray-600 text-sm">{student.email}</p>
+            <p className="text-gray-600 text-sm">{student.university}</p>
+            <p className="text-gray-600 text-sm">
+              Semester: {student.semester}, Section: {student.section}
             </p>
           </div>
-          
-          <button
-            onClick={() => window.location.href = '/'}
-            className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Return to Home
-          </button>
         </div>
-      </div>
-    );
-  }
+      </section>
 
-  // Show course selection interface
-  if (authStatus === 'no-courses') {
-    return (
-      <div className="min-h-screen bg-gray-100 py-8">
-        <div className="max-w-2xl mx-auto px-4">
-          <div className="bg-white shadow-lg rounded-lg p-8">
-            <div className="text-center mb-8">
-              <h2 className="text-3xl font-bold text-gray-900 mb-2">
-                Welcome! 👋
-              </h2>
-              <p className="text-gray-600">
-                You're registered in our system but not enrolled in any courses yet. 
-                Please contact your instructor to be enrolled in courses.
-              </p>
-            </div>
+      {/* Enrolled Courses Grid */}
+      <section className="flex-grow p-4 space-y-4 overflow-auto">
+        <h3 className="text-lg font-semibold mb-2">Enrolled Courses</h3>
+        {coursesLoading ? (
+          <div className="text-gray-500 text-center">Loading courses...</div>
+        ) : enrolledCourses.length === 0 ? (
+          <div className="text-gray-500 text-center">No enrolled courses found.</div>
+        ) : (
+          <div className="grid grid-cols-1 gap-4">
+            {enrolledCourses.map((course) => (
+              <div
+                key={course.id}
+                className="bg-white p-4 rounded-lg shadow text-left hover:shadow-md transition flex flex-col gap-2"
+              >
+                <div className="flex justify-between font-semibold text-blue-600 mb-1">
+                  <span>{course.code}</span>
+                  <span>{course.semester}</span>
+                </div>
+                <div className="text-gray-800 font-medium mb-1">{course.title}</div>
+                <div className="text-gray-600 text-sm">Instructor: {course.instructor}</div>
+                <div className="text-gray-600 text-sm">Section: {course.section}</div>
+                <button
+                  className="mt-2 px-4 py-2 bg-blue-600 text-white rounded shadow hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={() => openCheckin(course)}
+                  aria-label={`Check in for ${course.code} - ${course.title}`}
+                  disabled={!!checkedInToday[course.id]}
+                >
+                  {checkedInToday[course.id] ? "Checked In" : "Check In"}
+                </button>
+              </div>
+            ))}
           </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Show full student dashboard for authorized users with courses
-  return (
-    <div className="min-h-screen bg-gray-100">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                Welcome, {userData?.name || user.displayName}! 👋
-              </h1>
-              <p className="text-gray-600">Good to see you today!</p>
-            </div>
-            <button
-              onClick={() => setShowAddCourseModal(true)}
-              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
-            >
-              <span className="mr-2">+</span>
-              Add Course
-            </button>
-          </div>
-        </div>
-
-        {/* Student Enrollments */}
-        <StudentEnrollments 
-          enrollments={enrollments}
-          loading={loadingEnrollments}
-        />
-
-        {/* Attendance History */}
-        <AttendanceHistory />
-
-        {/* Add Course Modal */}
-        {showAddCourseModal && (
-          <AddCourseModal
-            onClose={() => setShowAddCourseModal(false)}
-            onSuccess={handleAddCourseSuccess}
-          />
         )}
-      </div>
+      </section>
+
+      {/* Bottom Navigation */}
+      <nav className="bg-white sticky bottom-0 border-t border-gray-200 flex justify-around text-gray-600">
+        <button
+          className="p-3 flex flex-col items-center text-blue-600"
+          aria-current="page"
+          aria-label="Home"
+        >
+          <svg
+            className="w-6 h-6 mb-1"
+            fill="currentColor"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <path d="M3 9.75L12 3l9 6.75v9.75a1.5 1.5 0 01-1.5 1.5H4.5A1.5 1.5 0 013 19.5V9.75z" />
+            <path d="M9 22V12h6v10" />
+          </svg>
+          Home
+        </button>
+        <button
+          className="p-3 flex flex-col items-center hover:text-blue-600"
+          aria-label="Signout"
+          onClick={logout}
+        >
+          <svg
+            className="w-6 h-6 mb-1"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 12h4" />
+          </svg>
+          Signout
+        </button>
+        <button
+          className="p-3 flex flex-col items-center text-gray-400 cursor-not-allowed"
+          aria-label="Settings (Disabled)"
+          disabled
+        >
+          <svg
+            className="w-6 h-6 mb-1"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.75V6m0 12v1.25m7.07-10.32l-.88.88m-10.32 10.32l-.88.88m12.02 0l-.88-.88m-10.32-10.32l-.88-.88M21 12h-1.25M4.25 12H3m16.07 4.07l-.88-.88m-10.32-10.32l-.88-.88" />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
+          Settings
+        </button>
+        <button
+          className="p-3 flex flex-col items-center hover:text-blue-600"
+          aria-label="Profile"
+          onClick={() => window.location.href = "/student-profile"}
+        >
+          <svg
+            className="w-6 h-6 mb-1"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <path d="M5.121 17.804A9 9 0 1110 21c0-3-1-5-1-5" />
+            <circle cx="12" cy="7" r="4" />
+          </svg>
+          Profile
+        </button>
+      </nav>
+      {/* Check-In Modal */}
+      {isCheckinOpen && checkinCourse && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="bg-white rounded-lg shadow-lg max-w-sm w-full p-6 relative animate-fadeIn">
+            <button
+              className="absolute top-2 right-2 text-gray-400 hover:text-gray-600"
+              onClick={closeCheckin}
+              aria-label="Close"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <h2 className="text-xl font-bold mb-2 text-blue-600">Check In</h2>
+            <div className="mb-2">
+              <div className="font-semibold">{checkinCourse.code} - {checkinCourse.title}</div>
+              <div className="text-gray-600 text-sm">Section: {checkinCourse.section}</div>
+              <div className="text-gray-600 text-sm">Semester: {checkinCourse.semester}</div>
+            </div>
+            <div className="mb-4">
+              <div className="text-gray-700 text-sm mb-1">Student: {student.name}</div>
+              <div className="text-gray-700 text-sm mb-1">ID: {student.studentId}</div>
+              <div className="text-gray-700 text-sm mb-1">Email: {student.email}</div>
+            </div>
+            {submitting ? (
+              <div className="flex flex-col items-center justify-center mb-4">
+                <div className="animate-spin rounded-full h-10 w-10 border-4 border-blue-500 border-t-transparent mb-2"></div>
+                <div className="text-blue-600 font-semibold">Marking attendance...</div>
+              </div>
+            ) : confirmation ? (
+              <div className="mb-4 text-green-600 font-semibold text-center">{confirmation}</div>
+            ) : (
+              <>
+                <div className="mb-4">
+                  {!gpsPermission ? (
+                    <button
+                      className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                      onClick={requestLocation}
+                    >
+                      Allow Location & Continue
+                    </button>
+                  ) : gpsPermission.allowed ? (
+                    <button
+                      className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                      onClick={submitCheckin}
+                    >
+                      Submit Check-In
+                    </button>
+                  ) : (
+                    <div className="text-red-600 text-center">Location permission denied.</div>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
-};
+}
 
-export default StudentHome;
+
