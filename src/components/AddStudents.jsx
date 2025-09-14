@@ -16,6 +16,7 @@ import { useAuth } from "../context/AuthContext";
 export default function AddStudents() {
   const { user } = useAuth();
   const [selectedCourse, setSelectedCourse] = useState("");
+  // Removed semester state; will use semester from selected course
   const [students, setStudents] = useState([]);
   const [isChecking, setIsChecking] = useState(false);
   const [errorModal, setErrorModal] = useState("");
@@ -60,9 +61,12 @@ export default function AddStudents() {
       }
     };
 
+
     fetchCourses();
   }, [user]);
 
+  // --- Original handleFileUpload (commented out for comparison) ---
+  /*
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -74,9 +78,31 @@ export default function AddStudents() {
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
       const parsed = XLSX.utils.sheet_to_json(worksheet);
-  setStudents(parsed);
+      setStudents(parsed);
     };
     reader.readAsArrayBuffer(file);
+  };
+  */
+
+  // --- handleFileUpload from CourseCreation.jsx ---
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const workbook = XLSX.read(e.target.result, { type: 'array' });
+          const sheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[sheetName];
+          const data = XLSX.utils.sheet_to_json(worksheet);
+          setStudents(data);
+        } catch (error) {
+          console.error('Error parsing file:', error);
+          alert('Error parsing file. Please make sure it\'s a valid Excel/CSV file.');
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
   };
 
   const handleSave = async () => {
@@ -84,10 +110,7 @@ export default function AddStudents() {
       setErrorModal("Please select a course before uploading.");
       return;
     }
-    if (students.length === 0) {
-      setErrorModal("Please upload a student roster first.");
-      return;
-    }
+    // No need to check for semester; will use from course object
 
     setIsChecking(true);
     try {
@@ -107,6 +130,7 @@ export default function AddStudents() {
       }
 
       // Save students if no roster exists yet
+      const selectedCourseObj = courses.find(c => c.id === selectedCourse);
       const savePromises = students.map(async (student) => {
         const email = (student.Email || student.email || "").trim().toLowerCase();
         if (!email) return null;
@@ -121,8 +145,8 @@ export default function AddStudents() {
             status: "active",
             enrolledCourses: arrayUnion({
               courseId: selectedCourse,
-              semester: student.Semester || "Unknown",
-              year: student.Year || new Date().getFullYear(),
+              semester: selectedCourseObj?.semester || "",
+              year: selectedCourseObj?.year || new Date().getFullYear(),
             }),
           },
           { merge: true }
@@ -166,11 +190,13 @@ export default function AddStudents() {
           ))}
         </select>
 
+        {/* Semester Dropdown removed; using semester from selected course */}
+
         {/* File Upload */}
         <input
           type="file"
           accept=".xlsx,.xls,.csv"
-          onChange={handleFileUpload}
+          /* onChange={handleFileUpload} */
           className="mb-4"
         />
 

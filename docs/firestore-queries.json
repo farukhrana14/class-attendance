@@ -1,0 +1,36 @@
+{
+  "teacherDashboard": {
+    "fetchTeacherCourses": {
+      "description": "Get all courses taught by the logged-in teacher",
+      "query": "collection('courses') WHERE teacherEmail == userData.email"
+    },
+    "fetchStudentsForCourse": {
+      "description": "Get all students enrolled in a given course",
+      "query": "collection('users') WHERE role == 'student' AND enrolledCourses array-contains courseId"
+    }
+  },
+  "studentDashboard": {
+    "fetchStudentProfile": {
+      "description": "Fetch logged-in student profile",
+      "query": "doc('users', user.email)"
+    },
+    "fetchStudentCourses": {
+      "description": "Get all courses a student is enrolled in",
+      "query": "collection('courses') WHERE documentId() IN user.enrolledCourses"
+    }
+  },
+  "adminDashboard": {
+    "fetchPendingTeachers": {
+      "description": "List of teachers awaiting approval",
+      "query": "collection('users') WHERE role == 'teacher' AND status == 'pending'"
+    },
+    "fetchActiveCoursesByUniversity": {
+      "description": "Active courses for a specific university/semester/year",
+      "query": "collection('courses') WHERE university == selectedUniversity AND semester == selectedSemester AND year == selectedYear AND status == 'active'"
+    },
+    "fetchStudentsByUniversity": {
+      "description": "All students in a given university",
+      "query": "collection('users') WHERE role == 'student' AND universities array-contains selectedUniversity"
+    }
+  }
+}

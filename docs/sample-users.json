@@ -1,0 +1,72 @@
+[
+  {
+    "id": "teacher1@example.com",
+    "name": "Alice Johnson",
+    "email": "teacher1@example.com",
+    "role": "teacher",
+    "status": "active",
+    "university": "State University",
+    "enrolledCourses": ["course1", "course2"],
+    "createdAt": "2025-09-14T00:00:00Z"
+  },
+  {
+    "id": "teacher2@example.com",
+    "name": "Bob Smith",
+    "email": "teacher2@example.com",
+    "role": "teacher",
+    "status": "active",
+    "university": "National College",
+    "enrolledCourses": ["course3", "course4"],
+    "createdAt": "2025-09-14T00:00:00Z"
+  },
+  {
+    "id": "student1@example.com",
+    "name": "Student One",
+    "email": "student1@example.com",
+    "role": "student",
+    "status": "active",
+    "university": "State University",
+    "enrolledCourses": ["course1"],
+    "createdAt": "2025-09-14T00:00:00Z"
+  },
+  {
+    "id": "student2@example.com",
+    "name": "Student Two",
+    "email": "student2@example.com",
+    "role": "student",
+    "status": "active",
+    "university": "State University",
+    "enrolledCourses": ["course1"],
+    "createdAt": "2025-09-14T00:00:00Z"
+  },
+  {
+    "id": "student3@example.com",
+    "name": "Student Three",
+    "email": "student3@example.com",
+    "role": "student",
+    "status": "active",
+    "university": "State University",
+    "enrolledCourses": ["course2"],
+    "createdAt": "2025-09-14T00:00:00Z"
+  },
+  {
+    "id": "student4@example.com",
+    "name": "Student Four",
+    "email": "student4@example.com",
+    "role": "student",
+    "status": "active",
+    "university": "National College",
+    "enrolledCourses": ["course3"],
+    "createdAt": "2025-09-14T00:00:00Z"
+  },
+  {
+    "id": "student5@example.com",
+    "name": "Student Five",
+    "email": "student5@example.com",
+    "role": "student",
+    "status": "active",
+    "university": "National College",
+    "enrolledCourses": ["course4"],
+    "createdAt": "2025-09-14T00:00:00Z"
+  }
+]

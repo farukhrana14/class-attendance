@@ -1,0 +1,35 @@
+{
+  "collections": {
+    "users": {
+      "description": "All system users (teachers, students, admins). Email or UID as document ID.",
+      "fields": {
+        "email": "string",
+        "name": "string",
+        "mobile": "string",
+        "role": "string - one of [student, teacher, admin]",
+        "status": "string - pending | active | rejected",
+        "universities": "array of strings - universities this user belongs to",
+        "enrolledCourses": "array of courseIds (students only)",
+        "coursesCreated": "array of courseIds (teachers only)",
+        "createdAt": "timestamp",
+        "updatedAt": "timestamp"
+      }
+    },
+    "courses": {
+      "description": "Courses offered in the system. Auto-generated doc ID.",
+      "fields": {
+        "courseCode": "string - e.g., CSC101",
+        "courseName": "string - full course name",
+        "section": "string - optional, e.g., A or 001",
+        "semester": "string - Spring | Summer | Fall",
+        "year": "number - e.g., 2025",
+        "university": "string - reference to one of user.universities",
+        "teacherEmail": "string - teacher’s email",
+        "teacherName": "string",
+        "status": "string - active | archived | cancelled",
+        "createdAt": "timestamp",
+        "updatedAt": "timestamp"
+      }
+    }
+  }
+}

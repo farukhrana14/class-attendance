@@ -82,7 +82,7 @@ const CourseAttendance = ({ enrollment }) => {
         studentName: user.displayName || user.email,
         courseCode: enrollment.courseCode,
         courseName: enrollment.courseName || enrollment.courseCode,
-        teacherEmail: enrollment.teacherEmail,
+  email: enrollment.email,
         section: enrollment.section,
         semester: enrollment.semester,
         year: enrollment.year,

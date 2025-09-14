@@ -27,7 +27,7 @@ export default function PendingStudentsManagement() {
       
       try {
         const coursesRef = collection(db, "courses");
-        const q = query(coursesRef, where("teacherEmail", "==", userData.email));
+  const q = query(coursesRef, where("email", "==", userData.email), where("role", "==", "teacher"));
         const querySnapshot = await getDocs(q);
         
         const courses = [];
@@ -125,7 +125,7 @@ export default function PendingStudentsManagement() {
 
       // 3. Update pending student status
       await updateDoc(doc(db, "pendingStudents", student.id), {
-        status: "approved",
+  status: "active",
         approvedAt: new Date().toISOString(),
         approvedBy: userData.email,
         courseId: matchingCourse.id

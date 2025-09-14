@@ -27,7 +27,7 @@ export default function PendingEnrollmentsManagement() {
     const setupRealtimeListeners = () => {
       // First, get teacher's courses
       const coursesRef = collection(db, "courses");
-      const coursesQuery = query(coursesRef, where("teacherEmail", "==", userData.email));
+  const coursesQuery = query(coursesRef, where("email", "==", userData.email), where("role", "==", "teacher"));
       
       const unsubscribeCourses = onSnapshot(coursesQuery, (snapshot) => {
         const courses = snapshot.docs.map(doc => ({
@@ -97,7 +97,7 @@ export default function PendingEnrollmentsManagement() {
         courseId: matchingCourse.id,
         courseCode: request.courseCode,
         courseName: matchingCourse.courseName || matchingCourse.title,
-        teacherEmail: matchingCourse.teacherEmail,
+  email: matchingCourse.teacherEmail,
         teacherName: matchingCourse.teacherName,
         university: request.university,
         section: request.section,
@@ -119,7 +119,7 @@ export default function PendingEnrollmentsManagement() {
 
       // 3. Update pending enrollment status
       await updateDoc(doc(db, "pendingEnrollments", request.id), {
-        status: "approved",
+  status: "active",
         approvedAt: new Date().toISOString(),
         approvedBy: userData.email,
         courseId: matchingCourse.id

@@ -18,7 +18,7 @@ export default function AdminMainArea({ topSection, children }) {
         const qPending = query(
           collection(db, "users"),
           where("role", "==", "teacher"),
-          where("statusApproval", "==", "pending")
+          where("status", "==", "active")
         );
         const pendingSnap = await getDocs(qPending);
 
@@ -26,7 +26,7 @@ export default function AdminMainArea({ topSection, children }) {
         const qTeachers = query(
           collection(db, "users"),
           where("role", "==", "teacher"),
-          where("statusApproval", "==", "approved")
+          where("status", "==", "active")
         );
         const teachersSnap = await getDocs(qTeachers);
 
@@ -40,12 +40,14 @@ export default function AdminMainArea({ topSection, children }) {
         // All courses
         const coursesSnap = await getDocs(collection(db, "courses"));
 
-        setStats({
+        const statsObj = {
           pendingCount: pendingSnap.size,
           totalTeachers: teachersSnap.size,
           totalStudents: studentsSnap.size,
           totalCourses: coursesSnap.size,
-        });
+        };
+        setStats(statsObj);
+        console.log("Admin Dashboard Card Data:", statsObj);
       } catch (err) {
         console.error("Error fetching admin stats:", err);
       }

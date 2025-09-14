@@ -34,7 +34,8 @@ export default function CourseCreation() {
     }));
   };
 
-  // Handle file upload
+  // Handle file upload (commented out for testing)
+  /*
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -55,6 +56,7 @@ export default function CourseCreation() {
       reader.readAsArrayBuffer(file);
     }
   };
+  */
 
   // Handle form submission
   const handleSubmit = async (e) => {
@@ -81,40 +83,7 @@ export default function CourseCreation() {
         status: 'active'
       });
 
-      // 2. Save each student in "users" collection
-      if (roster.length > 0) {
-        const studentPromises = roster.map(student => {
-          const normalized = {
-            id: (student.Email || student.email || "").trim().toLowerCase(),
-            name: student.Name || student.name || "Unnamed Student",
-            email: (student.Email || student.email || "").trim().toLowerCase(),
-            mobile: student.Mobile || student.mobile || "",
-            section: student.Section || student.section || ""
-          };
-
-          if (!normalized.email) return null;
-
-          const studentRef = doc(db, 'users', normalized.email);
-          return setDoc(
-            studentRef,
-            {
-              ...normalized,
-              role: 'student',
-              status: 'active',
-              university: formData.universityName,
-              createdAt: serverTimestamp(),
-              enrolledCourses: arrayUnion({
-                courseId: courseRef.id,
-                semester: formData.semester,
-                year: formData.year
-              })
-            },
-            { merge: true }
-          );
-        });
-
-        await Promise.all(studentPromises.filter(Boolean));
-      }
+      // 2. Save each student in "users" collection (roster logic removed)
 
       navigate('/teacher/courses');
     } catch (error) {
@@ -235,68 +204,9 @@ export default function CourseCreation() {
                   </div>
                 </div>
 
-                {/* Student Roster Section */}
-                <div className="bg-white shadow sm:rounded-lg p-6">
-                  <div className="flex justify-between items-center mb-6">
-                    <div>
-                      <h2 className="text-lg font-medium text-gray-900">Student Roster</h2>
-                      <p className="mt-1 text-sm text-gray-500">
-                        Upload a spreadsheet containing student information
-                      </p>
-                    </div>
-                    <div>
-                      <input
-                        type="file"
-                        id="roster-upload"
-                        accept=".xlsx,.xls,.csv"
-                        onChange={handleFileUpload}
-                        className="sr-only"
-                      />
-                      <label
-                        htmlFor="roster-upload"
-                        className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 cursor-pointer"
-                      >
-                        Upload Roster
-                      </label>
-                    </div>
-                  </div>
-
-                  {roster.length > 0 && (
-                    <div className="mt-6">
-                      <div className="overflow-x-auto border rounded-lg">
-                        <table className="min-w-full divide-y divide-gray-200">
-                          <thead className="bg-gray-50">
-                            <tr>
-                              {Object.keys(roster[0]).map((header, i) => (
-                                <th
-                                  key={`${header}-${i}`}
-                                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                                >
-                                  {header}
-                                </th>
-                              ))}
-                            </tr>
-                          </thead>
-                          <tbody className="bg-white divide-y divide-gray-200">
-                            {roster.slice(0, 5).map((student, rowIdx) => (
-                              <tr key={rowIdx}>
-                                {Object.values(student).map((value, colIdx) => (
-                                  <td key={colIdx} className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    {value}
-                                  </td>
-                                ))}
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                        {roster.length > 5 && (
-                          <div className="px-6 py-3 bg-gray-50 text-sm text-gray-500">
-                            Showing 5 of {roster.length} students
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
+                {/* Student Roster Section Placeholder */}
+                <div className="bg-white shadow sm:rounded-lg p-6 text-gray-400 text-center">
+                  Student Roster Section (temporarily removed)
                 </div>
 
                 {/* Form Actions */}

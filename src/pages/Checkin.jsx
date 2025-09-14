@@ -237,7 +237,7 @@ export default function Checkin() {
         dateId: dateId,
         status: "present",
         mode: "self-checkin",
-        teacherEmail: matchingCourse.teacherEmail || "",
+  email: matchingCourse.email || "",
         teacherName: matchingCourse.teacherName || "",
         timestamp: serverTimestamp(),
         location: location

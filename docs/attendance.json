@@ -1,0 +1,12 @@
+[
+  {
+    "courseId": "CSC101-2025-Spring-uni123",
+    "date": "2025-09-14",
+    "teacherId": "teacher1@example.com",
+    "records": [
+      { "studentId": "student1@example.com", "status": "present" },
+      { "studentId": "student2@example.com", "status": "absent" }
+    ],
+    "createdAt": "2025-09-14T08:00:00Z"
+  }
+]

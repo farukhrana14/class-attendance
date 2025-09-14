@@ -351,7 +351,7 @@ export default function RollCall() {
           dateId: dateId,
           status: status,
           mode: "rollcall",
-          teacherEmail: userData.email,
+          email: userData.email,
           teacherName: userData.name,
           timestamp: serverTimestamp()
         };

@@ -17,7 +17,7 @@ export default function AdminApproveTeacher() {
         const q = query(
           collection(db, "users"),
           where("role", "==", "teacher"),
-          where("statusApproval", "==", "pending")
+          where("status", "==", "pending")
         );
         const querySnapshot = await getDocs(q);
         const teachers = querySnapshot.docs.map(docSnap => ({
@@ -37,7 +37,7 @@ export default function AdminApproveTeacher() {
   const handleApprove = async (teacherId) => {
     try {
       await updateDoc(doc(db, "users", teacherId), {
-        statusApproval: "approved"
+        status: "active"
       });
       setPendingTeachers(prev => prev.filter(t => t.id !== teacherId));
     } catch (err) {
