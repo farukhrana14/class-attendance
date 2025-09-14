@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as XLSX from 'xlsx';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, setDoc, doc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
 import Sidebar from './Sidebar';
@@ -27,7 +27,6 @@ export default function CourseCreation() {
     }, 100);
   };
 
-  // Handle form input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -73,6 +72,7 @@ export default function CourseCreation() {
         teacherEmail: user.email
       };
 
+      // 1. Save course in "courses" collection
       const courseRef = await addDoc(collection(db, 'courses'), {
         ...formData,
         ...teacherData,
@@ -81,16 +81,39 @@ export default function CourseCreation() {
         status: 'active'
       });
 
+      // 2. Save each student in "users" collection
       if (roster.length > 0) {
-        const rosterPromises = roster.map(student => 
-          addDoc(collection(db, 'courses', courseRef.id, 'students'), {
-            ...student,
-            courseId: courseRef.id,
-            addedAt: serverTimestamp(),
-            status: 'enrolled'
-          })
-        );
-        await Promise.all(rosterPromises);
+        const studentPromises = roster.map(student => {
+          const normalized = {
+            id: (student.Email || student.email || "").trim().toLowerCase(),
+            name: student.Name || student.name || "Unnamed Student",
+            email: (student.Email || student.email || "").trim().toLowerCase(),
+            mobile: student.Mobile || student.mobile || "",
+            section: student.Section || student.section || ""
+          };
+
+          if (!normalized.email) return null;
+
+          const studentRef = doc(db, 'users', normalized.email);
+          return setDoc(
+            studentRef,
+            {
+              ...normalized,
+              role: 'student',
+              status: 'active',
+              university: formData.universityName,
+              createdAt: serverTimestamp(),
+              enrolledCourses: arrayUnion({
+                courseId: courseRef.id,
+                semester: formData.semester,
+                year: formData.year
+              })
+            },
+            { merge: true }
+          );
+        });
+
+        await Promise.all(studentPromises.filter(Boolean));
       }
 
       navigate('/teacher/courses');
@@ -102,14 +125,7 @@ export default function CourseCreation() {
     }
   };
 
-  const semesters = [
-    'Spring 2024',
-    'Summer 2024',
-    'Fall 2024',
-    'Spring 2025',
-    'Summer 2025',
-    'Fall 2025'
-  ];
+  const semesters = ['Spring', 'Summer', 'Fall', 'Other'];
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -179,8 +195,8 @@ export default function CourseCreation() {
                         className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 py-3 px-4"
                       >
                         <option value="">Select a semester</option>
-                        {semesters.map(sem => (
-                          <option key={sem} value={sem}>{sem}</option>
+                        {semesters.map((sem, i) => (
+                          <option key={`${sem}-${i}`} value={sem}>{sem}</option>
                         ))}
                       </select>
                     </div>
@@ -239,23 +255,22 @@ export default function CourseCreation() {
                       />
                       <label
                         htmlFor="roster-upload"
-                        className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer"
+                        className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 cursor-pointer"
                       >
                         Upload Roster
                       </label>
                     </div>
                   </div>
 
-                  {/* Roster Preview */}
                   {roster.length > 0 && (
                     <div className="mt-6">
                       <div className="overflow-x-auto border rounded-lg">
                         <table className="min-w-full divide-y divide-gray-200">
                           <thead className="bg-gray-50">
                             <tr>
-                              {Object.keys(roster[0]).map((header) => (
+                              {Object.keys(roster[0]).map((header, i) => (
                                 <th
-                                  key={header}
+                                  key={`${header}-${i}`}
                                   className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                                 >
                                   {header}
@@ -264,10 +279,10 @@ export default function CourseCreation() {
                             </tr>
                           </thead>
                           <tbody className="bg-white divide-y divide-gray-200">
-                            {roster.slice(0, 5).map((student, index) => (
-                              <tr key={index}>
-                                {Object.values(student).map((value, i) => (
-                                  <td key={i} className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {roster.slice(0, 5).map((student, rowIdx) => (
+                              <tr key={rowIdx}>
+                                {Object.values(student).map((value, colIdx) => (
+                                  <td key={colIdx} className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                     {value}
                                   </td>
                                 ))}
@@ -290,14 +305,14 @@ export default function CourseCreation() {
                   <button
                     type="button"
                     onClick={() => navigate('/teacher/courses')}
-                    className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className={`inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
+                    className={`inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 ${
                       isLoading ? 'opacity-50 cursor-not-allowed' : ''
                     }`}
                   >
