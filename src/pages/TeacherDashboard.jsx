@@ -105,6 +105,9 @@ function CoursesList({ courses, loading }) {
 export default function TeacherDashboard() {
   const navigate = useNavigate();
   const { userData, logout } = useAuth();
+  if (import.meta.env.DEV) {
+    console.log("[TeacherDashboard] userData:", userData);
+  }
 
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -118,12 +121,20 @@ export default function TeacherDashboard() {
       }
       setLoading(true);
       const coursesRef = collection(db, "courses");
-      const q = query(coursesRef, where("teacherEmail", "==", userData.email));
-      const querySnapshot = await getDocs(q);
-      const coursesData = [];
-      querySnapshot.forEach((docSnap) => {
-        coursesData.push({ id: docSnap.id, ...docSnap.data() });
-      });
+      const enrolled = userData.enrolledCourses || [];
+      let coursesData = [];
+      if (enrolled.length > 0) {
+        // Firestore 'in' queries support up to 10 items per query
+        const chunkSize = 10;
+        for (let i = 0; i < enrolled.length; i += chunkSize) {
+          const chunk = enrolled.slice(i, i + chunkSize);
+          const q = query(coursesRef, where("id", "in", chunk));
+          const querySnapshot = await getDocs(q);
+          querySnapshot.forEach((docSnap) => {
+            coursesData.push({ id: docSnap.id, ...docSnap.data() });
+          });
+        }
+      }
       setCourses(coursesData);
     } catch (error) {
       console.error("Error fetching courses:", error);
@@ -141,7 +152,13 @@ export default function TeacherDashboard() {
     <div className="min-h-screen bg-gray-100 flex">
       {/* Sidebar */}
       <aside className="w-64 bg-white shadow-md p-6 hidden md:block">
-        <h1 className="text-xl font-bold mb-6">Teacher Dashboard</h1>
+        <h1 className="text-xl font-bold mb-2">Teacher Dashboard</h1>
+        {userData && (
+          <div className="mb-4 p-3 bg-blue-50 rounded-lg text-blue-900">
+            <div className="font-semibold">{userData.name}</div>
+            <div className="text-xs break-all">{userData.email}</div>
+          </div>
+        )}
         <nav>
           {sidebarItems.map((item) => (
             <NavLink

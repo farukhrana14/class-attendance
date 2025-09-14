@@ -4,7 +4,6 @@ import * as XLSX from 'xlsx';
 import { collection, addDoc, serverTimestamp, setDoc, doc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
-import Sidebar from './Sidebar';
 
 export default function CourseCreation() {
   const navigate = useNavigate();
@@ -46,6 +45,7 @@ export default function CourseCreation() {
           const sheetName = workbook.SheetNames[0];
           const worksheet = workbook.Sheets[sheetName];
           const data = XLSX.utils.sheet_to_json(worksheet);
+          console.log("[CourseCreation] Data received from file:", data);
           setRoster(data);
         } catch (error) {
           console.error('Error parsing file:', error);
@@ -69,7 +69,7 @@ export default function CourseCreation() {
       const teacherData = {
         teacherId: user.email,
         teacherName: user.displayName || 'Unknown Teacher',
-        teacherEmail: user.email
+  email: user.email
       };
 
       // 1. Save course in "courses" collection
@@ -129,7 +129,6 @@ export default function CourseCreation() {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <Sidebar />
       
       <div className="flex-1 flex flex-col overflow-hidden">
         <main className="flex-1 overflow-y-auto">
