@@ -6,6 +6,7 @@ This map lists existing components, pages, hooks, and routes to prevent conflict
 
 ## Pages (`src/pages/`)
 
+- **RollCallLauncher.jsx** → direct entry page for `/teacher/roll-call` (course list + quick RollCall access)
 - **TeacherDashboard.jsx** → main teacher UI (currently large, to be slimmed)
 - **StudentHome.jsx / StudentHomeNew.jsx** → student landing pages
 - **AdminMainArea.jsx** → admin dashboard entry
@@ -15,6 +16,7 @@ This map lists existing components, pages, hooks, and routes to prevent conflict
 - **AddStudents.jsx**
 - **CourseDetails.jsx**
 - **CourseAttendanceReport.jsx**
+- RollCallLauncher serves as shortcut entry for teachers to reach RollCall without navigating per-course first.
 
 ---
 
@@ -74,3 +76,10 @@ This map lists existing components, pages, hooks, and routes to prevent conflict
 - Inline modals inside TeacherDashboard will be migrated to `/components/modals/`.
 - Protect naming consistency: do not reuse `Dashboard` without role prefix.
 - Keep routes in `/routes/` not inside pages after refactor.
+
+---
+
+## See Also
+
+- [Teacher Dashboard Refactor Plan](refactor-teacher-dashboard.md) — checklist + strategy for refactor.
+- [Visual Route Tree](visual_route_tree.md) — diagram and textual navigation tree.

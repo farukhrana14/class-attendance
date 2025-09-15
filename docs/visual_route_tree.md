@@ -45,3 +45,49 @@ It combines a diagram (data flow view) and a textual route tree (quick reference
   - Courses → `/courses/:courseId`
   - Attendance → `/attendance/:courseId/:dateId/:studentEmail`
   - Pending students → `/pendingStudents`
+
+---
+
+## See Also
+
+- [Naming Map](naming-map.md) — inventory of names to avoid conflicts.
+- [Teacher Dashboard Refactor Plan](refactor-teacher-dashboard.md) — strategy and execution plan.
+
+## ASCII Data Flow (Corrected)
+
+                           ┌─────────────────┐
+                           │ Firebase Auth   │
+                           │ (Google Sign-In)│
+                           └───────┬─────────┘
+                                   │
+             ┌─────────────────────┼───────────────────────┐
+             │                     │                       │
+      ┌──────▼─────┐         ┌─────▼──────┐          ┌─────▼──────┐
+      │  Student   │         │  Teacher   │          │   Admin    │
+      └─────┬──────┘         └─────┬──────┘          └─────┬──────┘
+            │                      │                       │
+            │                      │                       │
+
+┌────────▼────────┐ ┌────────▼─────────┐ ┌─────────▼─────────┐
+│Student Dashboard│ │ Teacher Dashboard│ │ Admin Dashboard │
+└───────┬─────────┘ └──────┬───────────┘ └───────┬───────────┘
+│ │ │
+│ │ │
+┌───────▼───────────┐ ┌─────▼─────────────┐ ┌──────▼────────────────┐
+│ Self Check-in │ │ Create Course │ │ Manage Teachers │
+│ (GPS + Time window)│ │ Add Students (CSV)│ │ Approve/Delete/Edit │
+│ Writes Attendance │ │ Roll Call (manual)│ │ Manage Students │
+└────────┬───────────┘ └─────────┬─────────┘ │ Manage Courses │
+│ │ └───────────────────────┘
+│ │
+┌───────▼───────────┐ ┌───────▼────────────┐
+│ Pending Students │ │ Courses/{courseId} │
+│ if not in roster │ │ Roster subcoll. │
+└────────┬──────────┘ └───────┬────────────┘
+│ │
+│ │
+┌────────▼─────────┐ ┌───────▼───────────────────────────┐
+│ Await teacher/ │ │ Attendance/{courseId}/{dateId}/ │
+│ admin approval │ │ {studentEmail} (status, ts, mode, │
+└──────────────────┘ │ gps) │
+└───────────────────────────────────┘

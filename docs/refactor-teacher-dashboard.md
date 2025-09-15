@@ -4,6 +4,9 @@
 
 ## Execution Plan (To-Do Checklist)
 
+> Temporary: access control modals removed from TeacherDashboard.  
+> Will reintroduce via TeacherRoute in Step 7 (protected routing).
+
 ### Step 1 — Lock canonical attendance component
 
 - [ ] Confirm `RollCall` is the only teacher-side attendance marking tool (Present/Absent/Late).
@@ -39,11 +42,20 @@
 
 ### Step 6 — Teacher routes
 
+- [ ] Add `/teacher/roll-call` route that renders `RollCallLauncher` for direct daily access.
 - [ ] Create `/routes/TeacherRoutes.jsx`.
 - [ ] Move all `<Route>` definitions from `TeacherDashboard.jsx` into `TeacherRoutes.jsx`.
 - [ ] Keep only `<Outlet />` in `TeacherDashboard` (or move to `TeacherLayout`).
+      Notes
+  > `RollCallLauncher` queries courses by `teacherId == user.email` and either:
+  >
+  > - auto-forwards to RollCall if only 1 course, or
+  > - shows a course picker if multiple courses.
 
 ### Step 7 — Protected routing
+
+> Temporary: access control modals removed from TeacherDashboard.  
+> Will reintroduce via TeacherRoute in Step 7 (protected routing).
 
 - [ ] Create `TeacherRoute.jsx` guard (similar to `AdminRoute`, `StudentRoute`).
 - [ ] Place all role-based guards (`AdminRoute`, `StudentRoute`, `TeacherRoute`) under `/routes/`.
@@ -149,5 +161,12 @@ Ensures code style consistency across the refactor. Prevents errors sneaking in 
 ### Documentation
 
 Final step: update `/docs/dev-notes.md` with component map, hook APIs, and route table so future work is smooth.
+
+---
+
+## See Also
+
+- [Naming Map](naming-map.md) — list of components, hooks, routes.
+- [Visual Route Tree](visual_route_tree.md) — diagram and textual navigation tree.
 
 ---
