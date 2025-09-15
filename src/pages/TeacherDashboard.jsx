@@ -1,3 +1,26 @@
+
+
+
+
+function AttendanceRedirect() {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  useEffect(() => {
+    async function goToFirstCourseRollCall() {
+      if (!user) return;
+      const q = query(collection(db, "courses"), where("teacherId", "==", user.uid));
+      const snap = await getDocs(q);
+      if (!snap.empty) {
+        const firstCourse = snap.docs[0];
+        navigate(`/teacher/courses/${firstCourse.id}/rollcall`, { replace: true });
+      } else {
+        navigate("/teacher/courses", { replace: true });
+      }
+    }
+    goToFirstCourseRollCall();
+  }, [user, navigate]);
+  return <p style={{ padding: 16 }}>Redirecting to attendance…</p>;
+}
 // src/pages/TeacherDashboard.jsx
 import React, { useState, useEffect } from "react";
 import { Routes, Route, NavLink, useNavigate } from "react-router-dom";
@@ -8,6 +31,7 @@ import {
   collection,
   query,
   where,
+  getDocs,
   updateDoc,
 } from "firebase/firestore";
 import { db } from "../firebase";
@@ -18,6 +42,7 @@ import RollCall from "../components/RollCall";
 import CourseAttendanceReport from "../components/CourseAttendanceReport";
 import CourseCreation from "../components/CourseCreation";
 import AddStudents from "../components/AddStudents";
+import RollCallLauncher from "./RollCallLauncher";
 
 // Sidebar items
 const sidebarItems = [
@@ -25,7 +50,7 @@ const sidebarItems = [
   { name: "Courses", path: "/teacher/courses", icon: "📚" },
   { name: "Create Course", path: "/teacher/create-course", icon: "➕" },
   { name: "Manage Students", path: "/teacher/add-students", icon: "👥" },
-  { name: "Register Attendance", path: "/teacher/attendance", icon: "📅" },
+  { name: "Register Attendance", path: "/teacher/roll-call", icon: "📅" },
   { name: "Reports", path: "/teacher/reports", icon: "📈" },
   { name: "Settings", path: "/teacher/settings", icon: "⚙️" },
 ];
@@ -135,7 +160,7 @@ function CoursesList({ courses, loading, ready, showEmpty, onDelete }) {
             <div className="flex justify-end mt-2">
               <button
                 onClick={(e) => {
-                  e.stopPropagation(); // prevent bubbling into card click
+                  e.stopPropagation();
                   onDelete(course);
                 }}
                 className="text-red-600 hover:underline font-medium bg-transparent border-none p-0 m-0 cursor-pointer"
@@ -321,7 +346,7 @@ export default function TeacherDashboard() {
             }
           />
           <Route
-            path="/courses"
+            path="courses"
             element={
               <CoursesList
                 courses={courses}
@@ -332,14 +357,16 @@ export default function TeacherDashboard() {
               />
             }
           />
-          <Route path="/courses/:courseId" element={<CourseDetails />} />
-          <Route path="/courses/:courseId/rollcall" element={<RollCall />} />
+          <Route path="courses/:courseId" element={<CourseDetails />} />
+          <Route path="courses/:courseId/rollcall" element={<RollCall />} />
+          <Route path="attendance" element={<AttendanceRedirect />} />
+          <Route path="roll-call" element={<RollCallLauncher />} />
           <Route
-            path="/courses/:courseId/reports"
+            path="courses/:courseId/reports"
             element={<CourseAttendanceReport />}
           />
-          <Route path="/create-course" element={<CourseCreation />} />
-          <Route path="/add-students" element={<AddStudents />} />
+          <Route path="create-course" element={<CourseCreation />} />
+          <Route path="add-students" element={<AddStudents />} />
         </Routes>
       </main>
 

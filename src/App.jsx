@@ -29,12 +29,13 @@ export default function App() {
       <Route path="/student" element={<StudentHome />} />
       <Route path="/student-profile" element={<StudentProfile />} />
 
-  {/* Redirect /teacher/dashboard to /teacher */}
-  <Route path="/teacher/dashboard" element={<Navigate to="/teacher" replace />} />
-  {/* Teacher (wildcard catches /teacher and any /teacher/...) */}
-  <Route path="/teacher/*" element={<TeacherDashboard />} />
+      {/* Teacher */}
+      {/* Redirect old /teacher/dashboard to /teacher */}
+      <Route path="/teacher/dashboard" element={<Navigate to="/teacher" replace />} />
+      {/* Wildcard ensures all subroutes like /teacher/roll-call, /teacher/courses, etc. work */}
+      <Route path="/teacher/*" element={<TeacherDashboard />} />
 
-      {/* Admin Dashboard (open to all for testing) */}
+      {/* Admin Dashboard */}
       <Route
         path="/admin"
         element={
@@ -85,8 +86,8 @@ export default function App() {
         }
       />
 
-      {/* Fallback */}
-      <Route path="*" element={<Navigate to="/" replace />} />
+  // Fallback route removed for now. To be implemented with route protection in step 7.
+  {/* <Route path="*" element={<Navigate to="/" replace />} /> */}
     </Routes>
   );
 }
