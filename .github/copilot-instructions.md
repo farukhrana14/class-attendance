@@ -1,6 +1,7 @@
 # Copilot Instructions for classAttend
 
 ## Project Overview
+
 - **Framework:** React (with Vite for build/dev), Firebase (Firestore), Tailwind CSS
 - **Structure:**
   - `src/` contains all app code, organized by `components/`, `pages/`, `layouts/`, `context/`, `routes/`, and `utils/`.
@@ -8,6 +9,7 @@
   - `public/` for static assets, `docs/` for data samples and schema.
 
 ## Key Patterns & Conventions
+
 - **Component Structure:**
   - Use functional React components. Most UI logic is in `components/` and `pages/`.
   - Layouts (e.g., `AdminLayout.jsx`, `AdminMainArea.jsx`) wrap pages and provide dashboard structure.
@@ -26,6 +28,7 @@
   - Modals and admin utilities are in `components/` and use context for open/close state.
 
 ## Developer Workflows
+
 - **Start Dev Server:**
   - `npm run dev` (Vite, hot reload)
 - **Build:**
@@ -37,6 +40,7 @@
   - Firestore schema/data samples in `docs/`.
 
 ## Project-Specific Notes
+
 - **Admin Dashboard:**
   - Dashboard stats are aggregated from Firestore (see `AdminMainArea.jsx`).
   - Teacher/student/course management in `components/` and `pages/`.
@@ -46,11 +50,13 @@
   - Do not commit or expose `serviceAccountKey.json`.
 
 ## Integration Points
+
 - **Firebase:** All backend data is in Firestore. No custom backend server.
 - **Vite:** Handles build/dev, config in `vite.config.js`.
 - **Tailwind:** Config in `tailwind.config.js`.
 
 ## Examples
+
 - **Querying Firestore:**
   ```js
   import { collection, query, where, getDocs } from "firebase/firestore";
@@ -65,4 +71,5 @@
   ```
 
 ---
+
 For more details, see `README.md`, `src/firebase.js`, and `docs/`.

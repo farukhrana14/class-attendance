@@ -1,14 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as XLSX from 'xlsx';
-import { collection, addDoc, serverTimestamp, setDoc, doc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { 
+  collection, 
+  serverTimestamp, 
+  setDoc, 
+  doc, 
+  updateDoc, 
+  arrayUnion, 
+  getDocs 
+} from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
 
 export default function CourseCreation() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  
+
+  const [courseDocIds, setCourseDocIds] = useState([]);
+  const [highestCourseNumber, setHighestCourseNumber] = useState(0);
   const [formData, setFormData] = useState({
     courseCode: '',
     title: '',
@@ -18,6 +28,34 @@ export default function CourseCreation() {
   });
   const [roster, setRoster] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+
+  // 🔹 Fetch course doc IDs with pattern 'course*' and find highest number
+  useEffect(() => {
+    const fetchCourseDocIds = async () => {
+      try {
+        const snapshot = await getDocs(collection(db, 'courses'));
+        const ids = [];
+        let maxNumber = 0;
+
+        snapshot.forEach(docSnap => {
+          if (docSnap.id.startsWith('course')) {
+            ids.push(docSnap.id);
+            const num = parseInt(docSnap.id.replace('course', ''), 10);
+            if (!isNaN(num) && num > maxNumber) {
+              maxNumber = num;
+            }
+          }
+        });
+
+        setCourseDocIds(ids);
+        setHighestCourseNumber(maxNumber);
+        console.log('[CourseCreation] Highest course number:', maxNumber);
+      } catch (err) {
+        console.error('[CourseCreation] Error fetching course doc IDs:', err);
+      }
+    };
+    fetchCourseDocIds();
+  }, []);
 
   const handleSignOut = () => {
     logout();
@@ -34,35 +72,11 @@ export default function CourseCreation() {
     }));
   };
 
-  // Handle file upload (commented out for testing)
-  /*
-  const handleFileUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
-          const workbook = XLSX.read(e.target.result, { type: 'array' });
-          const sheetName = workbook.SheetNames[0];
-          const worksheet = workbook.Sheets[sheetName];
-          const data = XLSX.utils.sheet_to_json(worksheet);
-          console.log("[CourseCreation] Data received from file:", data);
-          setRoster(data);
-        } catch (error) {
-          console.error('Error parsing file:', error);
-          alert('Error parsing file. Please make sure it\'s a valid Excel/CSV file.');
-        }
-      };
-      reader.readAsArrayBuffer(file);
-    }
-  };
-  */
-
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-    
+
     try {
       if (!user || !user.email) {
         throw new Error('Please log in to create a course.');
@@ -71,19 +85,46 @@ export default function CourseCreation() {
       const teacherData = {
         teacherId: user.email,
         teacherName: user.displayName || 'Unknown Teacher',
-  email: user.email
+        email: user.email
       };
 
-      // 1. Save course in "courses" collection
-      const courseRef = await addDoc(collection(db, 'courses'), {
+      // Build course data, map fields, and assign a new courseId
+      const nextCourseId = `course${highestCourseNumber + 1}`;
+      const courseData = {
         ...formData,
+        courseName: formData.title,
+        university: formData.universityName,
         ...teacherData,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
         status: 'active'
-      });
+      };
+      delete courseData.title;
+      delete courseData.universityName;
 
-      // 2. Save each student in "users" collection (roster logic removed)
+      // ✅ Create course doc with custom ID (course1, course2, etc.)
+      const courseRef = doc(db, 'courses', nextCourseId);
+      await setDoc(courseRef, courseData);
+
+      // 2. Add course ID to teacher's enrolledCourses array
+      try {
+        const { getDoc } = await import('firebase/firestore');
+        const userDocSnap = await getDoc(doc(db, 'users', user.email));
+        if (userDocSnap.exists()) {
+          console.log("[CourseCreation] enrolledCourses before update:", userDocSnap.data().enrolledCourses);
+        } else {
+          console.warn("[CourseCreation] User document does not exist for:", user.email);
+        }
+        await updateDoc(doc(db, 'users', user.email), {
+          enrolledCourses: arrayUnion(nextCourseId)  // ✅ use same custom ID
+        });
+        const userDocSnapAfter = await getDoc(doc(db, 'users', user.email));
+        if (userDocSnapAfter.exists()) {
+          console.log("[CourseCreation] enrolledCourses after update:", userDocSnapAfter.data().enrolledCourses);
+        }
+      } catch (err) {
+        console.error("Failed to update user enrolledCourses:", err);
+      }
 
       navigate('/teacher/courses');
     } catch (error) {
@@ -98,7 +139,6 @@ export default function CourseCreation() {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      
       <div className="flex-1 flex flex-col overflow-hidden">
         <main className="flex-1 overflow-y-auto">
           <div className="py-6">
