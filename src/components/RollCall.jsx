@@ -240,25 +240,71 @@ export default function RollCall() {
         setLoading(true);
         
         // Get course details
-        const courseDoc = await getDoc(doc(db, "courses", courseId));
-        if (!courseDoc.exists()) {
-          setError("Course not found");
-          return;
-        }
+        // const courseDoc = await getDoc(doc(db, "courses", courseId));
+        // console.log("Course document:", courseId, courseDoc);
+        // console.log("Signed-in user data:", userData);        
+        // if (!courseDoc.exists()) {
+        //   setError("Course not found");
+        // console.log("Course data Error:", courseId);
+        //   return;
+        // }
         
-        const courseData = { id: courseDoc.id, ...courseDoc.data() };
-        setCourse(courseData);
+        // const courseData = { id: courseDoc.id, ...courseDoc.data() };
+        // setCourse(courseData);
+// Get course details by matching the `id` field instead of doc ID
+const courseRef = doc(db, "courses", courseId);
+const courseDoc = await getDoc(courseRef);
 
-        // Get students from roster subcollection
-        const rosterRef = collection(db, "courses", courseId, "students");
-        const rosterSnap = await getDocs(rosterRef);
-        
-        const studentsList = [];
-        rosterSnap.forEach((doc) => {
-          studentsList.push({ id: doc.id, ...doc.data() });
-        });
-        
-        setStudents(studentsList);
+console.log("CourseId param:", courseId);
+console.log("Signed-in user data:", userData);
+
+if (!courseDoc.exists()) {
+  setError("Course not found");
+  console.log("Course data Error:", courseId);
+  return;
+}
+
+const data = courseDoc.data();
+
+if (data.status !== "active") {
+  setError("Course not active");
+  console.log("Course inactive:", courseId);
+  return;
+}
+
+const courseData = { id: courseDoc.id, ...data };
+setCourse(courseData);
+
+console.log("Course document:", courseDoc.id, courseData);
+
+
+
+
+// Fetch students enrolled in this course
+// Fetch all students
+const rosterRef = collection(db, "users");
+const q = query(
+  rosterRef,
+  where("role", "==", "student"),
+  where("status", "==", "active")
+);
+
+const rosterSnap = await getDocs(q);
+
+const studentsList = [];
+rosterSnap.forEach((doc) => {
+  const data = doc.data();
+  const isEnrolled = (data.enrolledCourses || []).some(
+    (c) => c.courseId === courseId
+  );
+  if (isEnrolled) {
+    studentsList.push({ id: doc.id, ...data });
+  }
+});
+
+setStudents(studentsList);
+console.log("Students in roster:", studentsList);
+
 
         // Check for existing attendance today
         const existingAttendance = {};
