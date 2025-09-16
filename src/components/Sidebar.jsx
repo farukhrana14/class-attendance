@@ -1,27 +1,36 @@
-import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import React from "react";
+import { Link, useLocation } from "react-router-dom";
 
 export default function Sidebar() {
   const location = useLocation();
-  
+
   const isActive = (path) => location.pathname === path;
 
   const menuItems = [
     { icon: "📊", label: "Dashboard", path: "/teacher" },
-    { icon: "📚", label: "Courses", path: "/teacher/courses", subItems: [
-      { label: "All Courses", path: "/teacher/courses" },
-      { label: "Create Course", path: "/teacher/courses/new" }
-    ]},
+    {
+      icon: "📚",
+      label: "Courses",
+      path: "/teacher/courses",
+      subItems: [
+        { label: "All Courses", path: "/teacher/courses" },
+        { label: "Create Course", path: "/teacher/courses/new" },
+      ],
+    },
     { icon: "📅", label: "Attendance", path: "/teacher/attendance" },
+
     { icon: "📝", label: "Reports", path: "/teacher/reports" },
-    { icon: "⚙️", label: "Settings", path: "/teacher/settings" }
+    { icon: "⚙️", label: "Settings", path: "/teacher/settings" },
   ];
 
   return (
     <div className="w-64 bg-white h-screen border-r border-gray-200">
       {/* Logo */}
       <div className="p-4 border-b border-gray-200">
-        <Link to="/" className="flex items-center text-blue-600 font-bold text-xl">
+        <Link
+          to="/"
+          className="flex items-center text-blue-600 font-bold text-xl"
+        >
           <span className="text-2xl mr-2">📚</span>
           ClassFlow
         </Link>

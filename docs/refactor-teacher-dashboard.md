@@ -13,6 +13,79 @@
 - [ ] Relegate `CourseAttendance` to student-side self check-in only.
 - [ ] Update routes to point teachers to `.../courses/:courseId/rollcall`.
 
+Refactor Plan: Teacher Dashboard & Course Enrollment
+Background
+
+Currently, our project relies heavily on the enrolledCourses (a.k.a. enlistedCourses) array field in users documents. This array is used in multiple components:
+
+RollCall.jsx
+
+AddStudents.jsx
+
+TeacherDashboard.jsx
+
+StudentHome.jsx / StudentHomeNew.jsx
+
+RosterManagement.jsx
+
+CourseCreation.jsx
+
+AdminStudentManagement.jsx
+
+The pattern has worked so far but introduces scaling issues and redundancy:
+
+Enrollment data is duplicated between users and courses.
+
+Queries like where("enrolledCourses.courseId", "==", courseId) are inefficient and limited by Firestore constraints.
+
+Per-student details (section, status, etc.) don’t belong inside a user’s enrolledCourses array.
+
+Migration Plan
+
+We will gradually migrate enrollment management away from enrolledCourses and into a more scalable structure:
+
+New path:
+
+courses/{courseId}/students/{studentEmail}
+
+Each student becomes a document under the students subcollection.
+
+Document fields include name, studentId, email, status, semester, year, university.
+
+This aligns with how RosterManagement.jsx and attendance flows already work.
+
+Users will still keep their base profile (role, status, etc.), but not redundant course rosters.
+
+Steps
+
+Phase 1 (Transition)
+
+Continue writing to both places: users/{email}/enrolledCourses and courses/{courseId}/students/{email}.
+
+This ensures backward compatibility while we update consuming components.
+
+Phase 2 (Component Updates)
+
+Update AddStudents.jsx to write into courses/{courseId}/students.
+
+Update RosterManagement.jsx and Student Management CRUD by teachers to fetch from courses/{courseId}/students.
+
+Add consistency checks between users.enrolledCourses and courses/{courseId}/students.
+
+Phase 3 (Deprecation)
+
+Once all consuming components are switched over, remove enrolledCourses from the users schema.
+
+Clean up queries in TeacherDashboard.jsx, StudentHome.jsx, and AdminStudentManagement.jsx.
+
+TODO
+
+Add migration logic in AddStudents.jsx to write to both users.enrolledCourses and courses/{courseId}/students.
+
+Update AddStudents.jsx and Student Management CRUD by teachers to rely on courses/{courseId}/students path for all future operations.
+
+Start refactoring RollCall.jsx to use the new courses/{courseId}/students path instead of userData.enlistedCourses.
+
 ### Step 2 — Write naming map
 
 - [ ] Inventory all current components/pages/hooks (CourseDetails, CourseAttendanceReport, CourseCreation, AddStudents, StudentEnrollments).
