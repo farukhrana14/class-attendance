@@ -13,7 +13,7 @@ const subMenus = {
   teachers: [
     { name: "Add / Remove", path: "/admin/teacher/manage" },
     { name: "Approve", path: "/admin/teacher/approve" },
-    { name: "Report", path: "/admin/teacher/report" },
+    { name: "Report", path: "/admin/courses/:courseId/reports" },
   ],
   students: [
     { name: "Add / Remove", path: "/admin/students/manage" },
@@ -36,7 +36,7 @@ export default function AdminSidebar() {
 
   React.useEffect(() => {
     const currentPath = location.pathname;
-    const currentItem = sidebarItems.find(item => item.path === currentPath);
+    const currentItem = sidebarItems.find((item) => item.path === currentPath);
     if (currentItem) {
       setActiveMenu(currentItem.name);
     }
@@ -77,16 +77,22 @@ export default function AdminSidebar() {
         </button>
       </div>
       <nav className="flex flex-col flex-grow">
-        {sidebarItems.map((item) => (
+        {sidebarItems.map((item) =>
           item.isManage ? (
             <div key={item.name}>
               <button
                 onClick={() => handleSubMenuToggle(item.key)}
                 className="text-left px-3 py-2 text-blue-600 font-bold hover:underline focus:outline-none w-full grid grid-cols-[auto_min-content] gap-0 items-center"
-                style={{ margin: '8px 0' }}
+                style={{ margin: "8px 0" }}
               >
                 <span className="flex items-center">{item.name}</span>
-                <span className={`-ml-2 transition-transform inline-block ${openSubMenu === item.key ? 'rotate-90' : ''} self-center`}>▶</span>
+                <span
+                  className={`-ml-2 transition-transform inline-block ${
+                    openSubMenu === item.key ? "rotate-90" : ""
+                  } self-center`}
+                >
+                  ▶
+                </span>
               </button>
               {openSubMenu === item.key && (
                 <div className="ml-4 flex flex-col">
@@ -119,7 +125,7 @@ export default function AdminSidebar() {
               {item.name}
             </button>
           )
-        ))}
+        )}
       </nav>
     </aside>
   );

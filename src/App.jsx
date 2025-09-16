@@ -75,13 +75,13 @@ export default function App() {
         <Route path="roll-call" element={<RollCallLauncher />} />
         <Route path="courses/:courseId" element={<CourseDetails />} />
         <Route path="courses/:courseId/rollcall" element={<RollCall />} />
+
+        <Route path="create-course" element={<CourseCreation />} />
+        <Route path="manage-students" element={<AddStudents />} />
         <Route
           path="courses/:courseId/reports"
           element={<CourseAttendanceReport />}
         />
-        <Route path="create-course" element={<CourseCreation />} />
-        <Route path="manage-students" element={<AddStudents />} />
-        <Route path="reports" element={<CourseAttendanceReport />} />
       </Route>
 
       {/* Admin Dashboard */}

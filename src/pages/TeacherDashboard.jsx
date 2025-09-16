@@ -136,7 +136,7 @@ export default function TeacherDashboard() {
         }}
       />
       {/* Main Content */}
-      <main className="flex-1 p-6">
+      <main className="flex-1 p-4 pt-14 md:pt-0">
         <Outlet
           context={{
             courses,

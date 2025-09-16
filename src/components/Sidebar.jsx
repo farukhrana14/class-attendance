@@ -19,7 +19,7 @@ export default function Sidebar() {
     },
     { icon: "📅", label: "Attendance", path: "/teacher/attendance" },
 
-    { icon: "📝", label: "Reports", path: "/teacher/reports" },
+    { icon: "📝", label: "Reports", path: "courses/:courseId/reports" },
     { icon: "⚙️", label: "Settings", path: "/teacher/settings" },
   ];
 
