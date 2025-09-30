@@ -1,11 +1,18 @@
 import React, { useState, useEffect } from "react";
-import { collection, getDocs, getDoc, setDoc, doc, query, where, Timestamp } from "firebase/firestore";
+import {
+  collection,
+  getDocs,
+  getDoc,
+  setDoc,
+  doc,
+  query,
+  where,
+  Timestamp,
+} from "firebase/firestore";
 import { db } from "../firebase";
 import { useAuth } from "../context/AuthContext";
 
 // Remove sampleStudent, use real userData from AuthContext
-
-
 
 export default function StudentHome() {
   const { user, userData, loading, logout } = useAuth();
@@ -20,39 +27,66 @@ export default function StudentHome() {
   // Track checked-in courses for today
   const [checkedInToday, setCheckedInToday] = useState({}); // { [courseId]: true }
 
-  // Fetch enrolled courses from Firestore
-  // Always fetch checked-in status on mount and after check-in
+  // Fetch enrolled courses using userData.enrolledCourses
   const fetchCoursesAndAttendance = async () => {
-    if (!user || !user.email) return;
+    if (
+      !user ||
+      !user.email ||
+      !userData ||
+      !Array.isArray(userData.enrolledCourses)
+    ) {
+      setEnrolledCourses([]);
+      setCheckedInToday({});
+      setCoursesLoading(false);
+      return;
+    }
     setCoursesLoading(true);
     try {
-      const coursesSnap = await getDocs(collection(db, "courses"));
-      const courses = [];
+      const courseIds = userData.enrolledCourses;
+      if (!courseIds.length) {
+        setEnrolledCourses([]);
+        setCheckedInToday({});
+        setCoursesLoading(false);
+        return;
+      }
+      // Firestore does not allow 'in' queries with more than 10 items, so batch if needed
+      const batches = [];
+      for (let i = 0; i < courseIds.length; i += 10) {
+        batches.push(courseIds.slice(i, i + 10));
+      }
+      let courses = [];
+      for (const batch of batches) {
+        const q = query(collection(db, "courses"), where("id", "in", batch));
+        const snap = await getDocs(q);
+        snap.forEach((docSnap) => {
+          const data = docSnap.data();
+          courses.push({
+            id: docSnap.id,
+            code: data.courseCode || data.code || "",
+            title: data.courseName || data.title || "",
+            instructor: data.teacherName || data.instructor || "",
+            section: data.section || "",
+            semester: data.semester || "",
+          });
+        });
+      }
+      // If any course IDs are missing (e.g., deleted), filter them out
+      courses = courses.filter((c) => !!c.id);
+      // Attendance check
       const checkedIn = {};
       const today = new Date().toISOString().slice(0, 10);
-      for (const docSnap of coursesSnap.docs) {
-        const courseData = { id: docSnap.id, ...docSnap.data() };
-        // Check if student is in students subcollection
-        const studentsSnap = await getDocs(collection(db, "courses", docSnap.id, "students"));
-        const isEnrolled = studentsSnap.docs.some(
-          (s) => (s.data().email || "").toLowerCase() === user.email.toLowerCase()
+      for (const course of courses) {
+        const attendanceId = `${today}_${user.email}`;
+        const attendanceRef = doc(
+          db,
+          "courses",
+          course.id,
+          "attendance",
+          attendanceId
         );
-        if (isEnrolled) {
-          courses.push({
-            id: courseData.id,
-            code: courseData.courseCode || courseData.code || "",
-            title: courseData.courseName || courseData.title || "",
-            instructor: courseData.teacherName || courseData.instructor || "",
-            section: courseData.section || "",
-            semester: courseData.semester || "",
-          });
-          // Check attendance for today
-          const attendanceId = `${today}_${user.email}`;
-          const attendanceRef = doc(db, "courses", docSnap.id, "attendance", attendanceId);
-          const attendanceSnap = await getDoc(attendanceRef);
-          if (attendanceSnap.exists()) {
-            checkedIn[docSnap.id] = true;
-          }
+        const attendanceSnap = await getDoc(attendanceRef);
+        if (attendanceSnap.exists()) {
+          checkedIn[course.id] = true;
         }
       }
       setEnrolledCourses(courses);
@@ -68,7 +102,7 @@ export default function StudentHome() {
   useEffect(() => {
     fetchCoursesAndAttendance();
     // eslint-disable-next-line
-  }, [user]);
+  }, [user, userData]);
 
   // Loading state
   if (loading || coursesLoading) {
@@ -95,7 +129,7 @@ export default function StudentHome() {
     university: userData.university || "",
     semester: userData.semester || "",
     section: userData.section || "",
-    avatarUrl: ""
+    avatarUrl: "",
   };
 
   const openCheckin = (course) => {
@@ -120,13 +154,14 @@ export default function StudentHome() {
       return;
     }
     navigator.geolocation.getCurrentPosition(
-      (pos) => setGpsPermission({
-        allowed: true,
-        coords: {
-          latitude: pos.coords.latitude,
-          longitude: pos.coords.longitude
-        }
-      }),
+      (pos) =>
+        setGpsPermission({
+          allowed: true,
+          coords: {
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+          },
+        }),
       () => setGpsPermission({ allowed: false })
     );
   };
@@ -148,7 +183,13 @@ export default function StudentHome() {
       const today = new Date();
       const dateStr = today.toISOString().slice(0, 10); // YYYY-MM-DD
       const attendanceId = `${dateStr}_${user.email}`;
-      const attendanceRef = doc(db, "courses", checkinCourse.id, "attendance", attendanceId);
+      const attendanceRef = doc(
+        db,
+        "courses",
+        checkinCourse.id,
+        "attendance",
+        attendanceId
+      );
       const attendanceSnap = await getDoc(attendanceRef);
       if (attendanceSnap.exists()) {
         setConfirmation(`Already checked in for ${checkinCourse.code} today.`);
@@ -168,9 +209,11 @@ export default function StudentHome() {
         courseCode: checkinCourse.code,
         courseTitle: checkinCourse.title,
         section: checkinCourse.section,
-        semester: checkinCourse.semester
+        semester: checkinCourse.semester,
       });
-      setConfirmation(`Attendance marked successfully for ${checkinCourse.code} on ${dateStr}`);
+      setConfirmation(
+        `Attendance marked successfully for ${checkinCourse.code} on ${dateStr}`
+      );
       // Refresh checked-in status from server
       fetchCoursesAndAttendance();
     } catch (err) {
@@ -187,7 +230,7 @@ export default function StudentHome() {
         <div className="text-xl font-bold text-blue-600">ClassAttend</div>
         <button
           aria-label="Profile"
-          onClick={() => window.location.href = "/student-profile"}
+          onClick={() => (window.location.href = "/student-profile")}
           className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center text-gray-600 font-bold"
         >
           {student.name.charAt(0)}
@@ -218,7 +261,9 @@ export default function StudentHome() {
         {coursesLoading ? (
           <div className="text-gray-500 text-center">Loading courses...</div>
         ) : enrolledCourses.length === 0 ? (
-          <div className="text-gray-500 text-center">No enrolled courses found.</div>
+          <div className="text-gray-500 text-center">
+            No enrolled courses found.
+          </div>
         ) : (
           <div className="grid grid-cols-1 gap-4">
             {enrolledCourses.map((course) => (
@@ -230,9 +275,15 @@ export default function StudentHome() {
                   <span>{course.code}</span>
                   <span>{course.semester}</span>
                 </div>
-                <div className="text-gray-800 font-medium mb-1">{course.title}</div>
-                <div className="text-gray-600 text-sm">Instructor: {course.instructor}</div>
-                <div className="text-gray-600 text-sm">Section: {course.section}</div>
+                <div className="text-gray-800 font-medium mb-1">
+                  {course.title}
+                </div>
+                <div className="text-gray-600 text-sm">
+                  Instructor: {course.instructor}
+                </div>
+                <div className="text-gray-600 text-sm">
+                  Section: {course.section}
+                </div>
                 <button
                   className="mt-2 px-4 py-2 bg-blue-600 text-white rounded shadow hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:opacity-50 disabled:cursor-not-allowed"
                   onClick={() => openCheckin(course)}
@@ -278,7 +329,11 @@ export default function StudentHome() {
             viewBox="0 0 24 24"
             aria-hidden="true"
           >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M17 16l4-4m0 0l-4-4m4 4H7"
+            />
             <path strokeLinecap="round" strokeLinejoin="round" d="M3 12h4" />
           </svg>
           Signout
@@ -296,7 +351,11 @@ export default function StudentHome() {
             viewBox="0 0 24 24"
             aria-hidden="true"
           >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.75V6m0 12v1.25m7.07-10.32l-.88.88m-10.32 10.32l-.88.88m12.02 0l-.88-.88m-10.32-10.32l-.88-.88M21 12h-1.25M4.25 12H3m16.07 4.07l-.88-.88m-10.32-10.32l-.88-.88" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M12 4.75V6m0 12v1.25m7.07-10.32l-.88.88m-10.32 10.32l-.88.88m12.02 0l-.88-.88m-10.32-10.32l-.88-.88M21 12h-1.25M4.25 12H3m16.07 4.07l-.88-.88m-10.32-10.32l-.88-.88"
+            />
             <circle cx="12" cy="12" r="3" />
           </svg>
           Settings
@@ -304,7 +363,7 @@ export default function StudentHome() {
         <button
           className="p-3 flex flex-col items-center hover:text-blue-600"
           aria-label="Profile"
-          onClick={() => window.location.href = "/student-profile"}
+          onClick={() => (window.location.href = "/student-profile")}
         >
           <svg
             className="w-6 h-6 mb-1"
@@ -329,28 +388,54 @@ export default function StudentHome() {
               onClick={closeCheckin}
               aria-label="Close"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              <svg
+                className="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
             <h2 className="text-xl font-bold mb-2 text-blue-600">Check In</h2>
             <div className="mb-2">
-              <div className="font-semibold">{checkinCourse.code} - {checkinCourse.title}</div>
-              <div className="text-gray-600 text-sm">Section: {checkinCourse.section}</div>
-              <div className="text-gray-600 text-sm">Semester: {checkinCourse.semester}</div>
+              <div className="font-semibold">
+                {checkinCourse.code} - {checkinCourse.title}
+              </div>
+              <div className="text-gray-600 text-sm">
+                Section: {checkinCourse.section}
+              </div>
+              <div className="text-gray-600 text-sm">
+                Semester: {checkinCourse.semester}
+              </div>
             </div>
             <div className="mb-4">
-              <div className="text-gray-700 text-sm mb-1">Student: {student.name}</div>
-              <div className="text-gray-700 text-sm mb-1">ID: {student.studentId}</div>
-              <div className="text-gray-700 text-sm mb-1">Email: {student.email}</div>
+              <div className="text-gray-700 text-sm mb-1">
+                Student: {student.name}
+              </div>
+              <div className="text-gray-700 text-sm mb-1">
+                ID: {student.studentId}
+              </div>
+              <div className="text-gray-700 text-sm mb-1">
+                Email: {student.email}
+              </div>
             </div>
             {submitting ? (
               <div className="flex flex-col items-center justify-center mb-4">
                 <div className="animate-spin rounded-full h-10 w-10 border-4 border-blue-500 border-t-transparent mb-2"></div>
-                <div className="text-blue-600 font-semibold">Marking attendance...</div>
+                <div className="text-blue-600 font-semibold">
+                  Marking attendance...
+                </div>
               </div>
             ) : confirmation ? (
-              <div className="mb-4 text-green-600 font-semibold text-center">{confirmation}</div>
+              <div className="mb-4 text-green-600 font-semibold text-center">
+                {confirmation}
+              </div>
             ) : (
               <>
                 <div className="mb-4">
@@ -369,7 +454,9 @@ export default function StudentHome() {
                       Submit Check-In
                     </button>
                   ) : (
-                    <div className="text-red-600 text-center">Location permission denied.</div>
+                    <div className="text-red-600 text-center">
+                      Location permission denied.
+                    </div>
                   )}
                 </div>
               </>
@@ -380,5 +467,3 @@ export default function StudentHome() {
     </div>
   );
 }
-
-

@@ -4,9 +4,8 @@ import { Routes, Route, useOutletContext } from "react-router-dom";
 
 // Pages
 import Home from "./pages/Home.jsx";
-import LoginPage from "./pages/LoginPage.jsx";
+// import LoginPage from "./pages/LoginPage.jsx";
 import StudentHome from "./pages/StudentHome.jsx";
-import StudentHomeNew from "./pages/StudentHomeNew.jsx";
 import StudentProfile from "./pages/StudentProfile.jsx";
 import TeacherDashboard from "./pages/TeacherDashboard.jsx";
 import TeacherCoursesList from "./components/TeacherCoursesList.jsx";
@@ -59,9 +58,9 @@ export default function App() {
     <Routes>
       {/* Public / hub */}
       <Route path="/" element={<Home />} />
-      <Route path="/login" element={<LoginPage />} />
+      {/* <Route path="/login" element={<LoginPage />} /> */}
       <Route path="/login/new-teacher" element={<NewTeacherPage />} />
-      <Route path="/student-new" element={<StudentHomeNew />} />
+      {/* <Route path="/student-new" element={<StudentHomeNew />} /> */}
 
       {/* Student */}
       <Route path="/student" element={<StudentHome />} />

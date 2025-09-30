@@ -3,11 +3,7 @@ import AccessRestrictedModal from "../components/AccessRestrictedModal";
 import { useLocation } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 import { auth, provider } from "../firebase";
-import {
-  signInWithPopup,
-  onAuthStateChanged,
-  signOut
-} from "firebase/auth";
+import { signInWithPopup, onAuthStateChanged, signOut } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "../firebase";
 
@@ -48,7 +44,18 @@ export function AuthProvider({ children }) {
               console.error("❌ Failed to set default role on user doc:", err);
             }
           }
-          setUserData(data);
+          // If no name in Firestore, use Google Auth displayName for UI only
+          const shouldUseGoogleName =
+            !data.name ||
+            data.name.trim() === "" ||
+            data.name === "Unnamed Student";
+          const userDataWithName = {
+            ...data,
+            name: shouldUseGoogleName
+              ? firebaseUser.displayName || "Unnamed Student"
+              : data.name,
+          };
+          setUserData(userDataWithName);
           setShowAccessRestricted(false);
         } else {
           setUserData(null);
@@ -77,6 +84,7 @@ export function AuthProvider({ children }) {
     selectedRoleRef.current = selectedRole;
     try {
       const result = await signInWithPopup(auth, provider);
+      console.log("Google Auth user:", result.user);
       setUser(result.user);
       const userDocRef = doc(db, "users", result.user.email);
       const userDocSnap = await getDoc(userDocRef);
@@ -95,7 +103,18 @@ export function AuthProvider({ children }) {
       } else {
         // Existing user
         const data = userDocSnap.data();
-        setUserData(data);
+        // If no name in Firestore, use Google Auth displayName for UI only
+        const shouldUseGoogleName =
+          !data.name ||
+          data.name.trim() === "" ||
+          data.name === "Unnamed Student";
+        const userDataWithName = {
+          ...data,
+          name: shouldUseGoogleName
+            ? result.user.displayName || "Unnamed Student"
+            : data.name,
+        };
+        setUserData(userDataWithName);
       }
     } catch (error) {
       console.error("❌ Login error:", error);
@@ -121,14 +140,27 @@ export function AuthProvider({ children }) {
     // No need to navigate again, logout already navigates to '/'
   };
 
-  // Force-hide modal if not on /login route
-  const modalOpen = location.pathname === '/login' && showAccessRestricted;
-
+  // Modal logic for access restriction (no longer tied to /login route)
+  const modalOpen = showAccessRestricted;
 
   return (
-    <AuthContext.Provider value={{ user, userData, login, logout, checking, loading: checking }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        userData,
+        login,
+        logout,
+        checking,
+        loading: checking,
+        showAccessRestricted,
+        setShowAccessRestricted,
+      }}
+    >
       {children}
-      <AccessRestrictedModal open={modalOpen} onClose={handleAccessRestrictedClose} />
+      <AccessRestrictedModal
+        open={modalOpen}
+        onClose={handleAccessRestrictedClose}
+      />
     </AuthContext.Provider>
   );
 }
