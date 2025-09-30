@@ -38,40 +38,45 @@ export default function StudentHome() {
       setEnrolledCourses([]);
       setCheckedInToday({});
       setCoursesLoading(false);
+      console.log("StudentHome: No user or enrolledCourses array", { user, userData });
       return;
     }
     setCoursesLoading(true);
     try {
-      const courseIds = userData.enrolledCourses;
+      // Extract courseIds from array of objects (support single or multiple)
+      const courseIds = Array.isArray(userData.enrolledCourses)
+        ? userData.enrolledCourses.map((c) => typeof c === "string" ? c : c.courseId)
+        : [];
+      console.log("StudentHome: extracted courseIds", courseIds);
       if (!courseIds.length) {
         setEnrolledCourses([]);
         setCheckedInToday({});
         setCoursesLoading(false);
+        console.log("StudentHome: No courseIds extracted", userData.enrolledCourses);
         return;
       }
-      // Firestore does not allow 'in' queries with more than 10 items, so batch if needed
-      const batches = [];
-      for (let i = 0; i < courseIds.length; i += 10) {
-        batches.push(courseIds.slice(i, i + 10));
-      }
+      // Fetch each course by document ID
       let courses = [];
-      for (const batch of batches) {
-        const q = query(collection(db, "courses"), where("id", "in", batch));
-        const snap = await getDocs(q);
-        snap.forEach((docSnap) => {
-          const data = docSnap.data();
-          courses.push({
-            id: docSnap.id,
-            code: data.courseCode || data.code || "",
-            title: data.courseName || data.title || "",
-            instructor: data.teacherName || data.instructor || "",
-            section: data.section || "",
-            semester: data.semester || "",
-          });
-        });
+      for (const courseId of courseIds) {
+        try {
+          const courseRef = doc(db, "courses", courseId);
+          const courseSnap = await getDoc(courseRef);
+          if (courseSnap.exists()) {
+            const data = courseSnap.data();
+            courses.push({
+              id: courseSnap.id,
+              code: data.courseCode || data.code || "",
+              title: data.courseName || data.title || "",
+              instructor: data.teacherName || data.instructor || "",
+              section: data.section || "",
+              semester: data.semester || "",
+            });
+          }
+        } catch (err) {
+          console.error("StudentHome: error fetching course", courseId, err);
+        }
       }
-      // If any course IDs are missing (e.g., deleted), filter them out
-      courses = courses.filter((c) => !!c.id);
+      console.log("StudentHome: fetched courses by ID", courses);
       // Attendance check
       const checkedIn = {};
       const today = new Date().toISOString().slice(0, 10);
@@ -91,9 +96,11 @@ export default function StudentHome() {
       }
       setEnrolledCourses(courses);
       setCheckedInToday(checkedIn);
+      console.log("StudentHome: setEnrolledCourses", courses);
     } catch (err) {
       setEnrolledCourses([]);
       setCheckedInToday({});
+      console.error("StudentHome: error fetching courses", err);
     } finally {
       setCoursesLoading(false);
     }
