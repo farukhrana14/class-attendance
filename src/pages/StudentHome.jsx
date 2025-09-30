@@ -38,21 +38,29 @@ export default function StudentHome() {
       setEnrolledCourses([]);
       setCheckedInToday({});
       setCoursesLoading(false);
-      console.log("StudentHome: No user or enrolledCourses array", { user, userData });
+      console.log("StudentHome: No user or enrolledCourses array", {
+        user,
+        userData,
+      });
       return;
     }
     setCoursesLoading(true);
     try {
       // Extract courseIds from array of objects (support single or multiple)
       const courseIds = Array.isArray(userData.enrolledCourses)
-        ? userData.enrolledCourses.map((c) => typeof c === "string" ? c : c.courseId)
+        ? userData.enrolledCourses.map((c) =>
+            typeof c === "string" ? c : c.courseId
+          )
         : [];
       console.log("StudentHome: extracted courseIds", courseIds);
       if (!courseIds.length) {
         setEnrolledCourses([]);
         setCheckedInToday({});
         setCoursesLoading(false);
-        console.log("StudentHome: No courseIds extracted", userData.enrolledCourses);
+        console.log(
+          "StudentHome: No courseIds extracted",
+          userData.enrolledCourses
+        );
         return;
       }
       // Fetch each course by document ID
@@ -326,7 +334,10 @@ export default function StudentHome() {
         <button
           className="p-3 flex flex-col items-center hover:text-blue-600"
           aria-label="Signout"
-          onClick={logout}
+          onClick={() => {
+            logout();
+            window.location.replace("/");
+          }}
         >
           <svg
             className="w-6 h-6 mb-1"

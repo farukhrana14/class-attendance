@@ -1,8 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { doc, getDoc, collection, getDocs, query, where } from 'firebase/firestore';
-import { db } from '../firebase';
-import { useAuth } from '../context/AuthContext';
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import {
+  doc,
+  getDoc,
+  collection,
+  getDocs,
+  query,
+  where,
+} from "firebase/firestore";
+import { db } from "../firebase";
+import { useAuth } from "../context/AuthContext";
 
 export default function CourseDetails() {
   const { courseId } = useParams();
@@ -16,7 +23,7 @@ export default function CourseDetails() {
   const handleSignOut = () => {
     logout();
     setTimeout(() => {
-      navigate("/");
+      window.location.replace("/");
     }, 100);
   };
 
@@ -24,24 +31,26 @@ export default function CourseDetails() {
     const fetchCourseAndStudents = async () => {
       try {
         // Fetch course details
-        const courseDoc = await getDoc(doc(db, 'courses', courseId));
+        const courseDoc = await getDoc(doc(db, "courses", courseId));
         if (!courseDoc.exists()) {
-          throw new Error('Course not found');
+          throw new Error("Course not found");
         }
 
         const courseData = { id: courseDoc.id, ...courseDoc.data() };
         setCourse(courseData);
 
         // Fetch students in the course
-        const studentsQuery = query(collection(db, 'courses', courseId, 'students'));
+        const studentsQuery = query(
+          collection(db, "courses", courseId, "students")
+        );
         const studentsSnapshot = await getDocs(studentsQuery);
-        const studentsData = studentsSnapshot.docs.map(doc => ({
+        const studentsData = studentsSnapshot.docs.map((doc) => ({
           id: doc.id,
-          ...doc.data()
+          ...doc.data(),
         }));
         setStudents(studentsData);
       } catch (err) {
-        console.error('Error fetching course details:', err);
+        console.error("Error fetching course details:", err);
         setError(err.message);
       } finally {
         setLoading(false);
@@ -73,10 +82,12 @@ export default function CourseDetails() {
       <div className="max-w-7xl mx-auto mb-6">
         <div className="bg-white shadow rounded-lg px-6 py-4">
           <div className="flex justify-between items-center">
-            <h2 className="text-lg font-semibold text-gray-800">Course Management</h2>
+            <h2 className="text-lg font-semibold text-gray-800">
+              Course Management
+            </h2>
             <div className="flex space-x-3 md:hidden">
               <button
-                onClick={() => navigate('/teacher')}
+                onClick={() => navigate("/teacher")}
                 className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
                 Teacher Dashboard
@@ -107,13 +118,15 @@ export default function CourseDetails() {
               </div>
               <div className="flex space-x-3">
                 <button
-                  onClick={() => navigate('/teacher/courses/edit/' + courseId)}
+                  onClick={() => navigate("/teacher/courses/edit/" + courseId)}
                   className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 >
                   Edit Course
                 </button>
                 <button
-                  onClick={() => navigate(`/teacher/courses/${courseId}/rollcall`)}
+                  onClick={() =>
+                    navigate(`/teacher/courses/${courseId}/rollcall`)
+                  }
                   className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 >
                   Take Roll Call
@@ -126,17 +139,23 @@ export default function CourseDetails() {
         {/* Course Stats */}
         <div className="grid grid-cols-1 gap-6 mb-6 sm:grid-cols-2 lg:grid-cols-4">
           <div className="bg-white shadow rounded-lg p-6">
-            <div className="text-sm font-medium text-gray-500">Total Students</div>
+            <div className="text-sm font-medium text-gray-500">
+              Total Students
+            </div>
             <div className="mt-2 text-3xl font-semibold text-gray-900">
               {students.length}
             </div>
           </div>
           <div className="bg-white shadow rounded-lg p-6">
-            <div className="text-sm font-medium text-gray-500">Classes Held</div>
+            <div className="text-sm font-medium text-gray-500">
+              Classes Held
+            </div>
             <div className="mt-2 text-3xl font-semibold text-gray-900">0</div>
           </div>
           <div className="bg-white shadow rounded-lg p-6">
-            <div className="text-sm font-medium text-gray-500">Average Attendance</div>
+            <div className="text-sm font-medium text-gray-500">
+              Average Attendance
+            </div>
             <div className="mt-2 text-3xl font-semibold text-gray-900">-</div>
           </div>
           <div className="bg-white shadow rounded-lg p-6">

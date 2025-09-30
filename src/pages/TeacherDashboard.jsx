@@ -132,7 +132,7 @@ export default function TeacherDashboard() {
         items={sidebarItems}
         onSignOut={() => {
           logout();
-          navigate("/");
+          window.location.replace("/");
         }}
       />
       {/* Main Content */}

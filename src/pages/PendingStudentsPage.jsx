@@ -10,7 +10,7 @@ export default function PendingStudentsPage() {
   const handleSignOut = () => {
     logout();
     setTimeout(() => {
-      navigate("/");
+      window.location.replace("/");
     }, 100);
   };
 
@@ -50,11 +50,12 @@ export default function PendingStudentsPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-6">
           <p className="text-gray-600">
-            Review and approve student registration requests for your courses. 
-            Approved students will be added to your course rosters and can access the attendance system.
+            Review and approve student registration requests for your courses.
+            Approved students will be added to your course rosters and can
+            access the attendance system.
           </p>
         </div>
-        
+
         <PendingStudentsManagement />
       </main>
     </div>

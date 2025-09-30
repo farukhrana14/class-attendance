@@ -56,7 +56,7 @@ export default function AdminSidebar() {
   const handleSignOut = () => {
     logout();
     setTimeout(() => {
-      navigate("/");
+      window.location.replace("/");
     }, 100);
   };
 

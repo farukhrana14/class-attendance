@@ -1,17 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import * as XLSX from 'xlsx';
-import { 
-  collection, 
-  serverTimestamp, 
-  setDoc, 
-  doc, 
-  updateDoc, 
-  arrayUnion, 
-  getDocs 
-} from 'firebase/firestore';
-import { db } from '../firebase';
-import { useAuth } from '../context/AuthContext';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import * as XLSX from "xlsx";
+import {
+  collection,
+  serverTimestamp,
+  setDoc,
+  doc,
+  updateDoc,
+  arrayUnion,
+  getDocs,
+} from "firebase/firestore";
+import { db } from "../firebase";
+import { useAuth } from "../context/AuthContext";
 
 export default function CourseCreation() {
   const navigate = useNavigate();
@@ -20,11 +20,11 @@ export default function CourseCreation() {
   const [courseDocIds, setCourseDocIds] = useState([]);
   const [highestCourseNumber, setHighestCourseNumber] = useState(0);
   const [formData, setFormData] = useState({
-    courseCode: '',
-    title: '',
-    semester: '',
+    courseCode: "",
+    title: "",
+    semester: "",
     year: new Date().getFullYear(),
-    universityName: ''
+    universityName: "",
   });
   const [roster, setRoster] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -33,14 +33,14 @@ export default function CourseCreation() {
   useEffect(() => {
     const fetchCourseDocIds = async () => {
       try {
-        const snapshot = await getDocs(collection(db, 'courses'));
+        const snapshot = await getDocs(collection(db, "courses"));
         const ids = [];
         let maxNumber = 0;
 
-        snapshot.forEach(docSnap => {
-          if (docSnap.id.startsWith('course')) {
+        snapshot.forEach((docSnap) => {
+          if (docSnap.id.startsWith("course")) {
             ids.push(docSnap.id);
-            const num = parseInt(docSnap.id.replace('course', ''), 10);
+            const num = parseInt(docSnap.id.replace("course", ""), 10);
             if (!isNaN(num) && num > maxNumber) {
               maxNumber = num;
             }
@@ -49,9 +49,9 @@ export default function CourseCreation() {
 
         setCourseDocIds(ids);
         setHighestCourseNumber(maxNumber);
-        console.log('[CourseCreation] Highest course number:', maxNumber);
+        console.log("[CourseCreation] Highest course number:", maxNumber);
       } catch (err) {
-        console.error('[CourseCreation] Error fetching course doc IDs:', err);
+        console.error("[CourseCreation] Error fetching course doc IDs:", err);
       }
     };
     fetchCourseDocIds();
@@ -60,15 +60,15 @@ export default function CourseCreation() {
   const handleSignOut = () => {
     logout();
     setTimeout(() => {
-      navigate("/");
+      window.location.replace("/");
     }, 100);
   };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
@@ -79,13 +79,13 @@ export default function CourseCreation() {
 
     try {
       if (!user || !user.email) {
-        throw new Error('Please log in to create a course.');
+        throw new Error("Please log in to create a course.");
       }
 
       const teacherData = {
         teacherId: user.email,
-        teacherName: user.displayName || 'Unknown Teacher',
-        email: user.email
+        teacherName: user.displayName || "Unknown Teacher",
+        email: user.email,
       };
 
       // Build course data, map fields, and assign a new courseId
@@ -97,45 +97,54 @@ export default function CourseCreation() {
         ...teacherData,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
-        status: 'active'
+        status: "active",
       };
       delete courseData.title;
       delete courseData.universityName;
 
       // ✅ Create course doc with custom ID (course1, course2, etc.)
-      const courseRef = doc(db, 'courses', nextCourseId);
+      const courseRef = doc(db, "courses", nextCourseId);
       await setDoc(courseRef, courseData);
 
       // 2. Add course ID to teacher's enrolledCourses array
       try {
-        const { getDoc } = await import('firebase/firestore');
-        const userDocSnap = await getDoc(doc(db, 'users', user.email));
+        const { getDoc } = await import("firebase/firestore");
+        const userDocSnap = await getDoc(doc(db, "users", user.email));
         if (userDocSnap.exists()) {
-          console.log("[CourseCreation] enrolledCourses before update:", userDocSnap.data().enrolledCourses);
+          console.log(
+            "[CourseCreation] enrolledCourses before update:",
+            userDocSnap.data().enrolledCourses
+          );
         } else {
-          console.warn("[CourseCreation] User document does not exist for:", user.email);
+          console.warn(
+            "[CourseCreation] User document does not exist for:",
+            user.email
+          );
         }
-        await updateDoc(doc(db, 'users', user.email), {
-          enrolledCourses: arrayUnion(nextCourseId)  // ✅ use same custom ID
+        await updateDoc(doc(db, "users", user.email), {
+          enrolledCourses: arrayUnion(nextCourseId), // ✅ use same custom ID
         });
-        const userDocSnapAfter = await getDoc(doc(db, 'users', user.email));
+        const userDocSnapAfter = await getDoc(doc(db, "users", user.email));
         if (userDocSnapAfter.exists()) {
-          console.log("[CourseCreation] enrolledCourses after update:", userDocSnapAfter.data().enrolledCourses);
+          console.log(
+            "[CourseCreation] enrolledCourses after update:",
+            userDocSnapAfter.data().enrolledCourses
+          );
         }
       } catch (err) {
         console.error("Failed to update user enrolledCourses:", err);
       }
 
-      navigate('/teacher/courses');
+      navigate("/teacher/courses");
     } catch (error) {
-      console.error('Error saving course:', error);
+      console.error("Error saving course:", error);
       alert(`Error saving course: ${error.message || error}`);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const semesters = ['Spring', 'Summer', 'Fall', 'Other'];
+  const semesters = ["Spring", "Summer", "Fall", "Other"];
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -156,10 +165,15 @@ export default function CourseCreation() {
               <form onSubmit={handleSubmit} className="space-y-8">
                 {/* Course Details Section */}
                 <div className="bg-white shadow sm:rounded-lg p-6">
-                  <h2 className="text-lg font-medium text-gray-900 mb-6">Course Details</h2>
+                  <h2 className="text-lg font-medium text-gray-900 mb-6">
+                    Course Details
+                  </h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <label htmlFor="courseCode" className="block text-sm font-medium text-gray-700">
+                      <label
+                        htmlFor="courseCode"
+                        className="block text-sm font-medium text-gray-700"
+                      >
                         Course Code
                       </label>
                       <input
@@ -175,7 +189,10 @@ export default function CourseCreation() {
                     </div>
 
                     <div>
-                      <label htmlFor="title" className="block text-sm font-medium text-gray-700">
+                      <label
+                        htmlFor="title"
+                        className="block text-sm font-medium text-gray-700"
+                      >
                         Title
                       </label>
                       <input
@@ -191,7 +208,10 @@ export default function CourseCreation() {
                     </div>
 
                     <div>
-                      <label htmlFor="semester" className="block text-sm font-medium text-gray-700">
+                      <label
+                        htmlFor="semester"
+                        className="block text-sm font-medium text-gray-700"
+                      >
                         Semester
                       </label>
                       <select
@@ -204,13 +224,18 @@ export default function CourseCreation() {
                       >
                         <option value="">Select a semester</option>
                         {semesters.map((sem, i) => (
-                          <option key={`${sem}-${i}`} value={sem}>{sem}</option>
+                          <option key={`${sem}-${i}`} value={sem}>
+                            {sem}
+                          </option>
                         ))}
                       </select>
                     </div>
 
                     <div>
-                      <label htmlFor="year" className="block text-sm font-medium text-gray-700">
+                      <label
+                        htmlFor="year"
+                        className="block text-sm font-medium text-gray-700"
+                      >
                         Year
                       </label>
                       <input
@@ -227,7 +252,10 @@ export default function CourseCreation() {
                     </div>
 
                     <div className="md:col-span-2">
-                      <label htmlFor="universityName" className="block text-sm font-medium text-gray-700">
+                      <label
+                        htmlFor="universityName"
+                        className="block text-sm font-medium text-gray-700"
+                      >
                         University Name
                       </label>
                       <input
@@ -253,7 +281,7 @@ export default function CourseCreation() {
                 <div className="flex items-center justify-end space-x-3">
                   <button
                     type="button"
-                    onClick={() => navigate('/teacher/courses')}
+                    onClick={() => navigate("/teacher/courses")}
                     className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
                   >
                     Cancel
@@ -262,10 +290,10 @@ export default function CourseCreation() {
                     type="submit"
                     disabled={isLoading}
                     className={`inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 ${
-                      isLoading ? 'opacity-50 cursor-not-allowed' : ''
+                      isLoading ? "opacity-50 cursor-not-allowed" : ""
                     }`}
                   >
-                    {isLoading ? 'Creating...' : 'Save Course'}
+                    {isLoading ? "Creating..." : "Save Course"}
                   </button>
                 </div>
               </form>
